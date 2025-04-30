@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import AppLayout from "@/components/layout/AppLayout";
 import Dashboard from "@/pages/Dashboard";
+import Agenda from "@/pages/Agenda";
 import Auth from "@/pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -39,7 +40,7 @@ const App = () => (
               }
             >
               <Route path="/" element={<Dashboard />} />
-              <Route path="/agenda" element={<PlaceholderPage title="Agenda" />} />
+              <Route path="/agenda" element={<Agenda />} />
               <Route path="/clientes" element={<PlaceholderPage title="Clientes" />} />
               <Route path="/servicos" element={<PlaceholderPage title="Serviços" />} />
               <Route path="/estoque" element={<PlaceholderPage title="Estoque" />} />
