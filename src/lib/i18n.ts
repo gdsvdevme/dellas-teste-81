@@ -1,6 +1,5 @@
 
-import { createI18n } from 'next-i18n';
-
+// Define o tipo para as mensagens do sistema
 export const i18n = {
   // Mensagens de sistema
   system: {
