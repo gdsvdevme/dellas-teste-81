@@ -13,6 +13,7 @@ type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
   clients?: { name: string } | null;
   appointment_services?: Array<{
     service_id: string;
+    price: number;
     services: { name: string; duration: number };
   }> | null;
 };
@@ -28,6 +29,7 @@ export const appointmentSchema = z.object({
   notes: z.string().optional(),
   status: z.enum(["scheduled", "cancelled", "completed"]),
   paymentStatus: z.enum(["pending", "paid"]),
+  customPrices: z.record(z.string(), z.number()).optional(),
 });
 
 export type AppointmentFormValues = z.infer<typeof appointmentSchema>;
@@ -61,6 +63,7 @@ export const useAppointmentForm = ({
       notes: "",
       status: "scheduled",
       paymentStatus: "pending",
+      customPrices: {},
     },
   });
 
@@ -68,6 +71,14 @@ export const useAppointmentForm = ({
   useEffect(() => {
     if (appointment) {
       const startDate = new Date(appointment.start_time);
+      const customPrices: Record<string, number> = {};
+      
+      // Create custom prices map from existing appointment services
+      if (appointment.appointment_services) {
+        appointment.appointment_services.forEach(service => {
+          customPrices[service.service_id] = service.price;
+        });
+      }
       
       form.reset({
         clientId: appointment.client_id,
@@ -78,6 +89,7 @@ export const useAppointmentForm = ({
         notes: appointment.notes || "",
         status: appointment.status as "scheduled" | "cancelled" | "completed",
         paymentStatus: appointment.payment_status as "pending" | "paid",
+        customPrices: customPrices,
       });
     } else if (selectedDate) {
       form.setValue("date", selectedDate);
@@ -112,14 +124,15 @@ export const useAppointmentForm = ({
     try {
       const { startDate, endDate } = calculateEndTime(values);
       
-      // Calculate total price
+      // Calculate total price using custom prices
       const selectedServices = services.filter(service => 
         values.serviceIds.includes(service.id)
       );
-      const totalPrice = selectedServices.reduce(
-        (total, service) => total + (service.price || 0),
-        0
-      );
+      
+      const totalPrice = selectedServices.reduce((total, service) => {
+        const customPrice = values.customPrices?.[service.id];
+        return total + (customPrice !== undefined ? customPrice : service.price);
+      }, 0);
       
       // Prepare appointment data
       const appointmentData = {
@@ -163,14 +176,16 @@ export const useAppointmentForm = ({
         appointmentId = data.id;
       }
       
-      // Add services to appointment
+      // Add services to appointment with custom prices
       if (appointmentId) {
         const appointmentServices = values.serviceIds.map(serviceId => {
-          const service = services.find(s => s.id === serviceId);
+          const customPrice = values.customPrices?.[serviceId];
+          const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
+          
           return {
             appointment_id: appointmentId!,
             service_id: serviceId,
-            price: service?.price || 0,
+            price: customPrice !== undefined ? customPrice : defaultPrice,
           };
         });
         
@@ -201,6 +216,7 @@ export const useAppointmentForm = ({
           notes: "",
           status: "scheduled",
           paymentStatus: "pending",
+          customPrices: {},
         });
       }
     } catch (error: any) {

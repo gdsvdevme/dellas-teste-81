@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { AppointmentStepProps } from "../AppointmentWizard";
 import { Checkbox } from "@/components/ui/checkbox";
 import { calculateTotalPrice } from "../AgendaUtils";
+import { Input } from "@/components/ui/input";
 
 const AppointmentServicesStep = ({
   formValues,
@@ -10,31 +11,20 @@ const AppointmentServicesStep = ({
   services,
   loadingServices
 }: AppointmentStepProps) => {
-  // Calculate total duration and price when services change
+  // Calculate total price based on selected services and custom prices
   const selectedServices = services.filter(service => 
     formValues.serviceIds.includes(service.id)
   );
   
-  const totalDuration = selectedServices.reduce(
-    (total, service) => total + (service.duration || 30),
-    0
-  );
-  
-  const totalPrice = calculateTotalPrice(selectedServices);
-  
-  // Helper function to format time in hours and minutes
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    
-    if (hours === 0) {
-      return `${mins} min`;
-    } else if (mins === 0) {
-      return `${hours} h`;
-    } else {
-      return `${hours} h ${mins} min`;
-    }
+  // Use custom prices if available, otherwise use service default price
+  const calculateTotal = () => {
+    return selectedServices.reduce((total, service) => {
+      const customPrice = formValues.customPrices?.[service.id];
+      return total + (customPrice !== undefined ? customPrice : service.price);
+    }, 0);
   };
+  
+  const totalPrice = calculateTotal();
   
   return (
     <div>
@@ -52,40 +42,83 @@ const AppointmentServicesStep = ({
                 Nenhum serviço cadastrado
               </div>
             ) : (
-              services.map(service => (
-                <div
-                  key={service.id}
-                  className={`p-3 rounded-md border transition-all ${
-                    formValues.serviceIds.includes(service.id)
-                      ? "border-primary bg-primary/10"
-                      : "border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      checked={formValues.serviceIds.includes(service.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          updateFormValues({
-                            serviceIds: [...formValues.serviceIds, service.id],
-                          });
-                        } else {
-                          updateFormValues({
-                            serviceIds: formValues.serviceIds.filter(id => id !== service.id),
-                          });
-                        }
-                      }}
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium">{service.name}</div>
-                      <div className="flex justify-between text-sm text-gray-500">
-                        <span>{formatDuration(service.duration)}</span>
-                        <span>R$ {service.price.toFixed(2)}</span>
+              services.map(service => {
+                // Check if service is selected
+                const isSelected = formValues.serviceIds.includes(service.id);
+                
+                // Get the price (custom or default)
+                const servicePrice = formValues.customPrices?.[service.id] !== undefined
+                  ? formValues.customPrices[service.id]
+                  : service.price;
+                
+                return (
+                  <div
+                    key={service.id}
+                    className={`p-3 rounded-md border transition-all ${
+                      isSelected
+                        ? "border-primary bg-primary/10"
+                        : "border-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              // Add service to selected services
+                              updateFormValues({
+                                serviceIds: [...formValues.serviceIds, service.id],
+                                customPrices: {
+                                  ...formValues.customPrices,
+                                  [service.id]: service.price // Initialize with default price
+                                }
+                              });
+                            } else {
+                              // Remove service from selected services
+                              const newCustomPrices = {...formValues.customPrices};
+                              delete newCustomPrices[service.id];
+                              
+                              updateFormValues({
+                                serviceIds: formValues.serviceIds.filter(id => id !== service.id),
+                                customPrices: newCustomPrices
+                              });
+                            }
+                          }}
+                        />
+                        <div>
+                          <div className="font-medium">{service.name}</div>
+                          <div className="text-sm text-gray-500">
+                            {service.duration} min
+                          </div>
+                        </div>
                       </div>
+                      
+                      {isSelected && (
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-500">R$</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={servicePrice}
+                            onChange={(e) => {
+                              const newPrice = parseFloat(e.target.value) || 0;
+                              updateFormValues({
+                                customPrices: {
+                                  ...formValues.customPrices,
+                                  [service.id]: newPrice
+                                }
+                              });
+                            }}
+                            className="w-20 text-right"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
           
@@ -95,10 +128,6 @@ const AppointmentServicesStep = ({
               <div className="flex justify-between font-medium">
                 <span>Total selecionado:</span>
                 <span>{formValues.serviceIds.length} serviços</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Duração estimada:</span>
-                <span>{formatDuration(totalDuration)}</span>
               </div>
               <div className="flex justify-between font-medium text-primary">
                 <span>Valor total:</span>

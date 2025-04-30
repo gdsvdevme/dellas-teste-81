@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
-import { calculateTotalPrice } from "./AgendaUtils";
 import AppointmentClientStep from "./wizard/AppointmentClientStep";
 import AppointmentServicesStep from "./wizard/AppointmentServicesStep";
 import AppointmentDateTimeStep from "./wizard/AppointmentDateTimeStep";
@@ -25,6 +24,7 @@ export type AppointmentFormValues = {
   status: "scheduled" | "cancelled" | "completed";
   paymentStatus: "pending" | "paid";
   recurrence: "none" | "weekly" | "biweekly" | "monthly" | null;
+  customPrices: Record<string, number>;
 };
 
 export type AppointmentStepProps = {
@@ -63,6 +63,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
     status: "scheduled",
     paymentStatus: "pending",
     recurrence: "none",
+    customPrices: {}, // Add custom prices field
   });
 
   // Load clients and services on component mount
@@ -138,8 +139,11 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
       
       const endDate = new Date(startDate.getTime() + totalDuration * 60000);
       
-      // Calculate total price
-      const totalPrice = calculateTotalPrice(selectedServices);
+      // Calculate total price from custom prices
+      const totalPrice = selectedServices.reduce((total, service) => {
+        const customPrice = formValues.customPrices[service.id];
+        return total + (customPrice !== undefined ? customPrice : service.price);
+      }, 0);
       
       // Prepare appointment data
       const appointmentData = {
@@ -162,14 +166,16 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
         
       if (error) throw error;
       
-      // Add appointment services
+      // Add appointment services with custom prices
       if (data.id) {
         const appointmentServices = formValues.serviceIds.map(serviceId => {
-          const service = services.find(s => s.id === serviceId);
+          const customPrice = formValues.customPrices[serviceId];
+          const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
+          
           return {
             appointment_id: data.id,
             service_id: serviceId,
-            price: service?.price || 0,
+            price: customPrice !== undefined ? customPrice : defaultPrice,
           };
         });
         
@@ -196,6 +202,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
         status: "scheduled",
         paymentStatus: "pending",
         recurrence: "none",
+        customPrices: {},
       });
       
       onClose();

@@ -2,7 +2,7 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AppointmentStepProps } from "../AppointmentWizard";
-import { calculateTotalPrice } from "../AgendaUtils";
+import { formatDuration } from "../AgendaUtils";
 
 const AppointmentSummaryStep = ({
   formValues,
@@ -21,21 +21,11 @@ const AppointmentSummaryStep = ({
     0
   );
   
-  const totalPrice = calculateTotalPrice(selectedServices);
-  
-  // Format total duration in hours and minutes
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    
-    if (hours === 0) {
-      return `${mins} minutos`;
-    } else if (mins === 0) {
-      return `${hours} hora${hours > 1 ? 's' : ''}`;
-    } else {
-      return `${hours} hora${hours > 1 ? 's' : ''} e ${mins} minutos`;
-    }
-  };
+  // Calculate total price using custom prices
+  const totalPrice = selectedServices.reduce((total, service) => {
+    const customPrice = formValues.customPrices?.[service.id];
+    return total + (customPrice !== undefined ? customPrice : service.price);
+  }, 0);
   
   // Get recurrence label
   const getRecurrenceLabel = () => {
@@ -62,17 +52,24 @@ const AppointmentSummaryStep = ({
       <div className="border-b pb-4">
         <h4 className="text-sm font-medium text-gray-500">SERVIÇOS</h4>
         <div className="space-y-2 mt-1">
-          {selectedServices.map(service => (
-            <div key={service.id} className="flex justify-between">
-              <div>
-                <div>{service.name}</div>
-                <div className="text-sm text-gray-500">{service.duration} min</div>
+          {selectedServices.map(service => {
+            // Get custom price if available
+            const servicePrice = formValues.customPrices?.[service.id] !== undefined
+              ? formValues.customPrices[service.id]
+              : service.price;
+              
+            return (
+              <div key={service.id} className="flex justify-between">
+                <div>
+                  <div>{service.name}</div>
+                  <div className="text-sm text-gray-500">{service.duration} min</div>
+                </div>
+                <div className="font-medium">
+                  R$ {servicePrice.toFixed(2)}
+                </div>
               </div>
-              <div className="font-medium">
-                R$ {service.price.toFixed(2)}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <div className="mt-2 pt-2 border-t flex justify-between font-medium">
           <div>Total</div>
@@ -87,7 +84,6 @@ const AppointmentSummaryStep = ({
           {format(formValues.date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
         </div>
         <div>Horário: {formValues.startTime}</div>
-        <div>Duração estimada: {formatDuration(totalDuration)}</div>
       </div>
       
       {/* Recurrence info */}
