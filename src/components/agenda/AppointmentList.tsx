@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { 
   format, 
@@ -20,10 +19,12 @@ import { Clock, Edit, Trash } from "lucide-react";
 import AppointmentModal from "./AppointmentModal";
 import { useToast } from "@/hooks/use-toast";
 
+// Updated Appointment type to include price in appointment_services
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
   clients: { name: string } | null;
   appointment_services: Array<{
     service_id: string;
+    price: number;
     services: { name: string; duration: number };
   }> | null;
 };
@@ -70,6 +71,7 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
           ),
           appointment_services (
             service_id,
+            price,
             services (
               name,
               duration
