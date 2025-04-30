@@ -9,12 +9,12 @@ import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
 import { i18n } from "@/lib/i18n";
 import AppointmentList from "@/components/agenda/AppointmentList";
-import AppointmentModal from "@/components/agenda/AppointmentModal";
+import AppointmentWizard from "@/components/agenda/AppointmentWizard";
 
 const Agenda = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [view, setView] = useState<"day" | "week" | "month">("day");
-  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [isAppointmentWizardOpen, setIsAppointmentWizardOpen] = useState(false);
 
   // Format the date according to the current view
   const getFormattedDate = () => {
@@ -32,7 +32,7 @@ const Agenda = () => {
       <PageHeader title={i18n.common.agenda} subtitle={getFormattedDate()}>
         <div className="flex items-center gap-2">
           <Button
-            onClick={() => setIsAppointmentModalOpen(true)}
+            onClick={() => setIsAppointmentWizardOpen(true)}
             className="flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
@@ -97,10 +97,14 @@ const Agenda = () => {
         </div>
       </div>
 
-      {/* Modal de criação/edição de agendamento */}
-      <AppointmentModal
-        open={isAppointmentModalOpen}
-        onOpenChange={setIsAppointmentModalOpen}
+      {/* Wizard de criação de agendamento */}
+      <AppointmentWizard
+        open={isAppointmentWizardOpen}
+        onClose={() => setIsAppointmentWizardOpen(false)}
+        onSuccess={() => {
+          // Refresh appointment list
+          window.location.reload();
+        }}
         selectedDate={date}
       />
     </PageContainer>

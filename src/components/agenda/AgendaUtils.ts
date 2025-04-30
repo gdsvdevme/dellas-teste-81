@@ -40,7 +40,37 @@ export const paymentStatusMap = {
   },
 };
 
+// Recorrência de agendamento
+export const recurrenceMap = {
+  none: {
+    label: "Sem recorrência",
+  },
+  weekly: {
+    label: "Semanal",
+  },
+  biweekly: {
+    label: "Quinzenal",
+  },
+  monthly: {
+    label: "Mensal",
+  },
+};
+
 // Função para calcular o preço total dos serviços
 export const calculateTotalPrice = (services: any[]) => {
   return services.reduce((total, service) => total + (service.price || 0), 0);
+};
+
+// Formatar duração em horas e minutos
+export const formatDuration = (minutes: number) => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  
+  if (hours === 0) {
+    return `${mins} minutos`;
+  } else if (mins === 0) {
+    return `${hours} hora${hours > 1 ? 's' : ''}`;
+  } else {
+    return `${hours} hora${hours > 1 ? 's' : ''} e ${mins} minutos`;
+  }
 };
