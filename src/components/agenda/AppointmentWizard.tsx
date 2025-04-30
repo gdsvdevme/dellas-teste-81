@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -54,7 +53,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const [formValues, setFormValues] = useState<AppointmentFormValues>({
+  const getInitialFormValues = (): AppointmentFormValues => ({
     clientId: "",
     serviceIds: [],
     date: selectedDate || new Date(),
@@ -63,8 +62,26 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
     status: "scheduled",
     paymentStatus: "pending",
     recurrence: "none",
-    customPrices: {}, // Add custom prices field
+    customPrices: {},
   });
+
+  const [formValues, setFormValues] = useState<AppointmentFormValues>(getInitialFormValues());
+
+  // Reset form values when the modal is closed
+  useEffect(() => {
+    if (!open) {
+      setFormValues(getInitialFormValues());
+      setCurrentStep(1);
+    } else {
+      // When opening, update the date to the selected date if provided
+      if (selectedDate) {
+        setFormValues(prev => ({
+          ...prev,
+          date: selectedDate
+        }));
+      }
+    }
+  }, [open, selectedDate]);
 
   // Load clients and services on component mount
   useEffect(() => {
@@ -219,6 +236,11 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
     }
   };
 
+  // Create a wrapper function for onClose that ensures form reset
+  const handleClose = () => {
+    onClose();
+  };
+
   // If not open, don't render
   if (!open) return null;
 
@@ -238,7 +260,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
       <div className="relative w-full max-w-xl bg-background rounded-lg shadow p-6 m-4">
         {/* Close button */}
         <button 
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -277,7 +299,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
             variant="outline"
             onClick={() => {
               if (currentStep === 1) {
-                onClose();
+                handleClose();
               } else {
                 setCurrentStep(prev => prev - 1);
               }
