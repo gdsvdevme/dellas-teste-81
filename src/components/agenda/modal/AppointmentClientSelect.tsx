@@ -1,6 +1,9 @@
 
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { Client } from "@/integrations/supabase/types";
+import { Database } from "@/integrations/supabase/types";
+
+// Define the Client type directly from Database
+type Client = Database["public"]["Tables"]["clients"]["Row"];
 
 interface AppointmentClientSelectProps {
   clients: Client[];

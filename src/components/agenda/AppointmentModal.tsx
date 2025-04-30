@@ -24,16 +24,18 @@ import AppointmentPaymentStatusSelect from "./modal/AppointmentPaymentStatusSele
 import { useAppointmentForm } from "./modal/useAppointmentForm";
 
 // Types
+type Client = Database["public"]["Tables"]["clients"]["Row"];
+type Service = Database["public"]["Tables"]["services"]["Row"];
+
+// Updated Appointment type with the price field in appointment_services
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
   clients?: { name: string } | null;
   appointment_services?: Array<{
     service_id: string;
+    price: number;
     services: { name: string; duration: number };
   }> | null;
 };
-
-type Client = Database["public"]["Tables"]["clients"]["Row"];
-type Service = Database["public"]["Tables"]["services"]["Row"];
 
 interface AppointmentModalProps {
   open: boolean;
