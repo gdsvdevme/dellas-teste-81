@@ -25,10 +25,10 @@ const AppointmentPaymentStatusSelect = ({ form }: AppointmentPaymentStatusSelect
             <select
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               {...field}
-              value={field.value || "null"}
+              value={field.value || "não definido"}
               onChange={(e) => {
-                // Handle null as a string but convert it to actual null
-                const value = e.target.value === "null" ? null : e.target.value as PaymentStatus;
+                // Handle "não definido" as a string but convert it to actual null
+                const value = e.target.value === "não definido" ? null : e.target.value as PaymentStatus;
                 field.onChange(value);
                 
                 // Update appointment status based on payment status
@@ -45,8 +45,8 @@ const AppointmentPaymentStatusSelect = ({ form }: AppointmentPaymentStatusSelect
                 }
               }}
             >
-              <option value="null">
-                {i18n.paymentStatus.null}
+              <option value="não definido">
+                Não definido
               </option>
               <option value="pendente">
                 {i18n.paymentStatus.pending}

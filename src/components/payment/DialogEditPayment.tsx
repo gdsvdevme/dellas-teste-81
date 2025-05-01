@@ -56,7 +56,7 @@ interface DialogEditPaymentProps {
 // Form schema for validation
 const formSchema = z.object({
   status: z.string(),
-  payment_status: z.string().nullable(),
+  payment_status: z.string(),
   final_price: z.preprocess(
     (val) => (val === "" ? 0 : Number(val)),
     z.number().min(0, "O valor não pode ser negativo")
@@ -74,7 +74,7 @@ export function DialogEditPayment({
     resolver: zodResolver(formSchema),
     defaultValues: {
       status: appointment.status,
-      payment_status: appointment.payment_status,
+      payment_status: appointment.payment_status || "não definido",
       final_price: appointment.final_price || 0,
     },
   });
@@ -86,7 +86,7 @@ export function DialogEditPayment({
       if (name === "status") {
         const newStatus = value.status;
         if (newStatus === "agendado" || newStatus === "cancelado") {
-          form.setValue("payment_status", null);
+          form.setValue("payment_status", "não definido");
         } else if (newStatus === "finalizado") {
           form.setValue("payment_status", "pago");
         } else if (newStatus === "pagamento pendente") {
@@ -101,7 +101,7 @@ export function DialogEditPayment({
           form.setValue("status", "finalizado");
         } else if (newPaymentStatus === "pendente") {
           form.setValue("status", "pagamento pendente");
-        } else if (newPaymentStatus === null) {
+        } else if (newPaymentStatus === "não definido") {
           // Only reset status if it's payment-related
           const currentStatus = form.getValues("status");
           if (currentStatus === "finalizado" || currentStatus === "pagamento pendente") {
@@ -119,7 +119,7 @@ export function DialogEditPayment({
     // Ensure we're passing the required properties with non-optional values
     onUpdate({
       status: values.status,
-      payment_status: values.payment_status || null,
+      payment_status: values.payment_status === "não definido" ? null : values.payment_status,
       final_price: values.final_price,
     });
   }
@@ -175,7 +175,7 @@ export function DialogEditPayment({
                   <FormLabel>Status do Pagamento</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value || "null"}
+                    defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger className="rounded-md border-salon-secondary/50">
@@ -183,7 +183,7 @@ export function DialogEditPayment({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="rounded-md border-salon-secondary/30">
-                      <SelectItem value="null">Não definido</SelectItem>
+                      <SelectItem value="não definido">Não definido</SelectItem>
                       <SelectItem value="pendente">Pendente</SelectItem>
                       <SelectItem value="pago">Pago</SelectItem>
                     </SelectContent>
