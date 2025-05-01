@@ -14,21 +14,18 @@ export type Database = {
           appointment_id: string
           final_price: number | null
           id: string
-          price: number
           service_id: string
         }
         Insert: {
           appointment_id: string
           final_price?: number | null
           id?: string
-          price: number
           service_id: string
         }
         Update: {
           appointment_id?: string
           final_price?: number | null
           id?: string
-          price?: number
           service_id?: string
         }
         Relationships: [
