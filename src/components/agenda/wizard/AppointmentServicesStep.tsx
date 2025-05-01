@@ -88,9 +88,7 @@ const AppointmentServicesStep = ({
                         />
                         <div>
                           <div className="font-medium">{service.name}</div>
-                          <div className="text-sm text-gray-500">
-                            {service.duration} min
-                          </div>
+                          {/* Duration removed as requested */}
                         </div>
                       </div>
                       

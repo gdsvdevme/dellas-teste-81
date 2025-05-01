@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -21,7 +22,7 @@ export type AppointmentFormValues = {
   startTime: string;
   notes: string;
   status: "scheduled" | "cancelled" | "completed";
-  paymentStatus: "pending" | "paid";
+  paymentStatus: "pending" | "paid" | null;
   recurrence: "none" | "weekly" | "biweekly" | "monthly" | null;
   customPrices: Record<string, number>;
 };
@@ -59,8 +60,8 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
     date: selectedDate || new Date(),
     startTime: "09:00",
     notes: "",
-    status: "scheduled",
-    paymentStatus: "pending",
+    status: "scheduled", // Mantém como "scheduled" no código
+    paymentStatus: null, // Alterado para null conforme solicitado
     recurrence: "none",
     customPrices: {},
   });
@@ -168,8 +169,8 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
         notes: formValues.notes,
-        status: formValues.status,
-        payment_status: formValues.paymentStatus,
+        status: "scheduled", // Mantém como "scheduled" no banco de dados
+        payment_status: null, // Alterado para null conforme solicitado
         final_price: totalPrice,
         recurrence: formValues.recurrence === "none" ? null : formValues.recurrence,
       };
@@ -210,17 +211,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
       
       // Reset form and close modal
       setCurrentStep(1);
-      setFormValues({
-        clientId: "",
-        serviceIds: [],
-        date: new Date(),
-        startTime: "09:00",
-        notes: "",
-        status: "scheduled",
-        paymentStatus: "pending",
-        recurrence: "none",
-        customPrices: {},
-      });
+      setFormValues(getInitialFormValues());
       
       onClose();
       if (onSuccess) onSuccess();

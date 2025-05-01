@@ -71,5 +71,6 @@ export const i18n = {
   paymentStatus: {
     paid: 'Pago',
     pending: 'Pendente',
+    null: 'Não definido',
   },
 };

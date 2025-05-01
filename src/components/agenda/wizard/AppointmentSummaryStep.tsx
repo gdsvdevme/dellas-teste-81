@@ -62,7 +62,7 @@ const AppointmentSummaryStep = ({
               <div key={service.id} className="flex justify-between">
                 <div>
                   <div>{service.name}</div>
-                  <div className="text-sm text-gray-500">{service.duration} min</div>
+                  {/* Duration removed as requested */}
                 </div>
                 <div className="font-medium">
                   R$ {servicePrice.toFixed(2)}

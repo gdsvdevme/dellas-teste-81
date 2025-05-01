@@ -28,7 +28,7 @@ export const appointmentSchema = z.object({
   startTime: z.string({ required_error: "O horário é obrigatório" }),
   notes: z.string().optional(),
   status: z.enum(["scheduled", "cancelled", "completed"]),
-  paymentStatus: z.enum(["pending", "paid"]),
+  paymentStatus: z.enum(["pending", "paid"]).nullable(),
   customPrices: z.record(z.string(), z.number()).optional(),
 });
 
@@ -62,7 +62,7 @@ export const useAppointmentForm = ({
       startTime: "09:00",
       notes: "",
       status: "scheduled",
-      paymentStatus: "pending",
+      paymentStatus: null, // Alterado para null conforme solicitado
       customPrices: {},
     },
   });
@@ -88,7 +88,7 @@ export const useAppointmentForm = ({
                   startDate.getMinutes().toString().padStart(2, '0'),
         notes: appointment.notes || "",
         status: appointment.status as "scheduled" | "cancelled" | "completed",
-        paymentStatus: appointment.payment_status as "pending" | "paid",
+        paymentStatus: appointment.payment_status as "pending" | "paid" | null,
         customPrices: customPrices,
       });
     } else if (selectedDate) {
@@ -215,7 +215,8 @@ export const useAppointmentForm = ({
           startTime: "09:00",
           notes: "",
           status: "scheduled",
-          paymentStatus: "pending",
+          paymentStatus: null, // Alterado para null conforme solicitado
+          recurrence: "none",
           customPrices: {},
         });
       }

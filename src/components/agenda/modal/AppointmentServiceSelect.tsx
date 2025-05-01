@@ -74,9 +74,7 @@ const AppointmentServiceSelect = ({ services, form }: AppointmentServiceSelectPr
                         />
                         <div className="flex-1">
                           <span className="font-medium">{service.name}</span>
-                          <div className="text-sm text-gray-500">
-                            ({service.duration} min)
-                          </div>
+                          {/* Duration removed as requested */}
                         </div>
                       </div>
                       
