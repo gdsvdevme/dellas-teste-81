@@ -53,7 +53,9 @@ export type Database = {
           end_time: string
           final_price: number | null
           id: string
+          is_parent: boolean | null
           notes: string | null
+          parent_appointment_id: string | null
           payment_date: string | null
           payment_status: string
           recurrence: string | null
@@ -70,7 +72,9 @@ export type Database = {
           end_time: string
           final_price?: number | null
           id?: string
+          is_parent?: boolean | null
           notes?: string | null
+          parent_appointment_id?: string | null
           payment_date?: string | null
           payment_status?: string
           recurrence?: string | null
@@ -87,7 +91,9 @@ export type Database = {
           end_time?: string
           final_price?: number | null
           id?: string
+          is_parent?: boolean | null
           notes?: string | null
+          parent_appointment_id?: string | null
           payment_date?: string | null
           payment_status?: string
           recurrence?: string | null
@@ -110,6 +116,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_parent_appointment_id_fkey"
+            columns: ["parent_appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
         ]

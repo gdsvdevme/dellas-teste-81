@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { 
   format, 
@@ -20,7 +19,7 @@ import AppointmentDetails from "./AppointmentDetails";
 import { useToast } from "@/hooks/use-toast";
 import { Repeat } from "lucide-react";
 
-// Updated Appointment type to use final_price instead of price
+// Updated Appointment type to use final_price instead of price and include parent-child fields
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
   clients: { name: string } | null;
   appointment_services: Array<{
@@ -104,7 +103,8 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
           variant: "destructive",
         });
       } else {
-        setAppointments(data || []);
+        // Cast returned data to the Appointment type to handle the additional fields
+        setAppointments(data as unknown as Appointment[]);
       }
     } catch (error) {
       console.error("Erro ao buscar agendamentos:", error);
