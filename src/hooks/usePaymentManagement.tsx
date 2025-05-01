@@ -1,0 +1,146 @@
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { type Appointment, type ClientAppointments } from "@/components/payment/PendingPaymentsByClient";
+
+export const usePaymentManagement = () => {
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [openCollapsibleIds, setOpenCollapsibleIds] = useState<string[]>([]);
+  const queryClient = useQueryClient();
+
+  // Fetch appointments with client details
+  const { data: appointments = [], isLoading } = useQuery({
+    queryKey: ['appointments'],
+    queryFn: async () => {
+      console.log("Fetching appointments");
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          client:client_id (
+            name
+          ),
+          appointment_services (
+            service_id,
+            service:service_id (
+              name
+            )
+          )
+        `);
+
+      if (error) {
+        toast.error("Erro ao carregar agendamentos");
+        console.error("Error fetching appointments:", error);
+        return [];
+      }
+      
+      console.log("Appointments data:", data);
+      return data as Appointment[];
+    }
+  });
+
+  // Mutation for updating appointment status
+  const updateAppointmentMutation = useMutation({
+    mutationFn: async ({ id, values }: { id: string, values: { status: string, payment_status: string, final_price?: number } }) => {
+      const { error } = await supabase
+        .from('appointments')
+        .update(values)
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      toast.success("Pagamento atualizado com sucesso");
+    },
+    onError: (error) => {
+      toast.error(`Erro ao atualizar pagamento: ${error.message}`);
+    }
+  });
+
+  // Handle payment
+  const handlePayment = (appointment: Appointment) => {
+    updateAppointmentMutation.mutate({
+      id: appointment.id,
+      values: { 
+        status: "finalizado", 
+        payment_status: "pago",
+        // Keep the same final_price if it already exists
+        ...(appointment.final_price && { final_price: appointment.final_price })
+      }
+    });
+  };
+
+  // Handle payment for all appointments of a client
+  const handlePayAllForClient = (clientId: string, appointments: Appointment[]) => {
+    appointments.forEach(appointment => {
+      updateAppointmentMutation.mutate({
+        id: appointment.id,
+        values: { 
+          status: "finalizado", 
+          payment_status: "pago",
+          ...(appointment.final_price && { final_price: appointment.final_price })
+        }
+      });
+    });
+  };
+
+  // Toggle collapsible open/closed state
+  const toggleCollapsible = (clientId: string) => {
+    setOpenCollapsibleIds(prev => 
+      prev.includes(clientId) 
+        ? prev.filter(id => id !== clientId)
+        : [...prev, clientId]
+    );
+  };
+
+  // Group appointments by client for pending payments
+  const pendingPaymentsByClient = appointments
+    ? (() => {
+        const clientMap = new Map<string, ClientAppointments>();
+        
+        appointments
+          .filter(appointment => appointment.payment_status === 'pendente')
+          .forEach(appointment => {
+            const clientId = appointment.client_id;
+            const clientName = appointment.client?.name || 'Cliente Desconhecido';
+            const price = appointment.final_price || 0;
+
+            if (!clientMap.has(clientId)) {
+              clientMap.set(clientId, {
+                client_id: clientId,
+                client_name: clientName,
+                appointments: [],
+                totalDue: 0
+              });
+            }
+
+            const client = clientMap.get(clientId)!;
+            client.appointments.push(appointment);
+            client.totalDue += price;
+          });
+
+        return Array.from(clientMap.values());
+      })()
+    : [];
+
+  // Paid appointments for table display
+  const paidAppointments = appointments
+    ? appointments.filter(appointment => appointment.payment_status === 'pago')
+    : [];
+
+  return {
+    appointments,
+    isLoading,
+    selectedAppointment,
+    setSelectedAppointment,
+    openCollapsibleIds,
+    toggleCollapsible,
+    handlePayment,
+    handlePayAllForClient,
+    updateAppointmentMutation,
+    pendingPaymentsByClient,
+    paidAppointments
+  };
+};
