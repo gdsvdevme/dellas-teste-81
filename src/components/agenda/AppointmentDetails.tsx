@@ -167,14 +167,14 @@ const AppointmentDetails = ({
   return (
     <>
       <Dialog open={open && !showEditModal} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md p-0 rounded-lg overflow-hidden">
-          <DialogHeader className="bg-gradient-to-r from-salon-primary/90 to-salon-primary p-5 rounded-t-lg">
+        <DialogContent className="sm:max-w-md p-0 rounded-lg overflow-y-auto max-h-[85vh]">
+          <DialogHeader className="bg-gradient-to-r from-salon-primary/90 to-salon-primary p-4 sm:p-5 rounded-t-lg sticky top-0 z-[55]">
             <DialogTitle className="text-white flex items-center gap-2">
               <span>Detalhes do Agendamento</span>
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4 p-5">
+          <div className="space-y-4 p-4 sm:p-5">
             {/* Seção Cliente */}
             <Card className="shadow-sm">
               <CardContent className="p-4">
@@ -243,7 +243,7 @@ const AppointmentDetails = ({
             </Card>
           </div>
           
-          <DialogFooter className="px-5 pb-5 pt-0 flex-col sm:flex-row gap-3">
+          <DialogFooter className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0 flex-col sm:flex-row gap-3">
             <div className="flex gap-2 w-full sm:w-auto order-3 sm:order-1">
               <Button
                 variant="outline"
@@ -281,7 +281,7 @@ const AppointmentDetails = ({
                     <ChevronDown className="h-4 w-4 ml-1 opacity-70" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuContent align="end" className="w-40 z-[85] bg-popover">
                   <DropdownMenuItem 
                     className="cursor-pointer flex items-center gap-2" 
                     onClick={() => handleUpdateStatus("finalizado", "pago")}
