@@ -34,6 +34,7 @@ export const appointmentSchema = z.object({
   recurrence: z.enum(["none", "weekly", "biweekly", "monthly"]).nullable().default("none"),
   recurrenceDays: z.array(z.string()).default([]),
   customPrices: z.record(z.string(), z.number()).optional(),
+  recurrenceCount: z.number().int().positive().default(1),
 });
 
 export type AppointmentFormValues = z.infer<typeof appointmentSchema>;
@@ -70,6 +71,7 @@ export const useAppointmentForm = ({
       recurrence: "none",
       recurrenceDays: [],
       customPrices: {},
+      recurrenceCount: 1,
     },
   });
 
@@ -120,6 +122,7 @@ export const useAppointmentForm = ({
         recurrence: appointment.recurrence as "weekly" | "biweekly" | "monthly" | "none" | null || "none",
         recurrenceDays: appointment.recurrence_days || [],
         customPrices: customPrices,
+        recurrenceCount: appointment.recurrence_count || 1,
       });
     } else if (selectedDate) {
       form.setValue("date", selectedDate);
@@ -194,6 +197,7 @@ export const useAppointmentForm = ({
         final_price: totalPrice,
         recurrence: values.recurrence === "none" ? null : values.recurrence,
         recurrence_days: values.recurrenceDays.length > 0 ? values.recurrenceDays : null,
+        recurrence_count: values.recurrenceCount,
       };
       
       let appointmentId = appointment?.id;
@@ -270,6 +274,7 @@ export const useAppointmentForm = ({
           recurrence: "none",
           recurrenceDays: [],
           customPrices: {},
+          recurrenceCount: 1,
         });
       }
     } catch (error: any) {

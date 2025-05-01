@@ -26,6 +26,7 @@ export type AppointmentFormValues = {
   recurrence: "none" | "weekly" | "biweekly" | "monthly" | null;
   recurrenceDays: string[];
   customPrices: Record<string, number>;
+  recurrenceCount: number;
 };
 
 export type AppointmentStepProps = {
@@ -66,6 +67,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
     recurrence: "none",
     recurrenceDays: [],
     customPrices: {},
+    recurrenceCount: 1,
   });
 
   const [formValues, setFormValues] = useState<AppointmentFormValues>(getInitialFormValues());
@@ -180,6 +182,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
         final_price: totalPrice,
         recurrence: formValues.recurrence === "none" ? null : formValues.recurrence,
         recurrence_days: formValues.recurrenceDays.length > 0 ? formValues.recurrenceDays : null,
+        recurrence_count: formValues.recurrenceCount || 1,
       };
       
       // Create appointment

@@ -1,90 +1,64 @@
 
 import { useState } from "react";
-import { Check, Search, UserPlus } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { AppointmentStepProps } from "../AppointmentWizard";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import DialogNewClient from "../modal/DialogNewClient";
 
 const AppointmentClientStep = ({
   formValues,
   updateFormValues,
   clients,
-  loadingClients
+  loadingClients,
 }: AppointmentStepProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  
-  // Filter clients based on search term
-  const filteredClients = clients.filter(client => 
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.phone?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [isNewClientDialogOpen, setIsNewClientDialogOpen] = useState(false);
+
+  // Função para lidar com a criação de novo cliente
+  const handleClientCreated = (clientId: string, clientName: string) => {
+    updateFormValues({ clientId });
+  };
 
   return (
-    <div>
-      <h3 className="text-lg font-medium mb-4 text-salon-primary">Selecione o Cliente</h3>
+    <div className="space-y-5">
+      <h3 className="text-lg font-playfair font-medium mb-4 text-salon-primary">Selecione o Cliente</h3>
       
-      <div className="relative mb-4">
-        <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-        <Input
-          placeholder="Buscar cliente por nome ou telefone..."
-          className="pl-8 rounded-md border-salon-secondary/50"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-      
-      {loadingClients ? (
-        <div className="flex justify-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-salon-primary"></div>
-        </div>
-      ) : (
-        <>
-          <div className="max-h-64 overflow-y-auto space-y-1 mb-4">
-            {filteredClients.length === 0 ? (
-              <div className="text-center py-4 text-gray-500">
-                {searchTerm.length > 0 ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
-              </div>
-            ) : (
-              filteredClients.map(client => (
-                <div
-                  key={client.id}
-                  className={`p-3 rounded-md border cursor-pointer transition-all ${
-                    formValues.clientId === client.id
-                      ? "border-salon-primary bg-salon-primary/10"
-                      : "border-gray-200 hover:bg-gray-50"
-                  }`}
-                  onClick={() => updateFormValues({ clientId: client.id })}
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-medium">{client.name}</div>
-                      {client.phone && (
-                        <div className="text-sm text-gray-500">{client.phone}</div>
-                      )}
-                    </div>
-                    {formValues.clientId === client.id && (
-                      <Check className="h-5 w-5 text-salon-primary" />
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <label className="block text-sm font-medium">Cliente</label>
+          <div className="flex gap-2">
+            <Select
+              value={formValues.clientId}
+              onValueChange={(value) => updateFormValues({ clientId: value })}
+              disabled={loadingClients}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione um cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name} {client.phone ? `(${client.phone})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={() => setIsNewClientDialogOpen(true)}
+            >
+              Novo Cliente
+            </Button>
           </div>
-          
-          <Button
-            variant="outline"
-            className="w-full flex items-center justify-center gap-2 rounded-md border-salon-secondary/50"
-            onClick={() => {
-              // This would normally open a dialog to add a new client
-              // For now, just show a message
-              alert("Funcionalidade de adicionar cliente será implementada em breve");
-            }}
-          >
-            <UserPlus className="h-4 w-4" />
-            Adicionar Novo Cliente
-          </Button>
-        </>
-      )}
+        </div>
+      </div>
+
+      {/* Dialog para adicionar novo cliente */}
+      <DialogNewClient
+        open={isNewClientDialogOpen}
+        onOpenChange={setIsNewClientDialogOpen}
+        onClientCreated={handleClientCreated}
+      />
     </div>
   );
 };
