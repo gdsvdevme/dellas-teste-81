@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { 
   format, 
@@ -9,16 +8,11 @@ import {
   startOfMonth, 
   endOfMonth,
   addDays,
-  eachHourOfInterval,
   isSameDay
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
-import { Button } from "@/components/ui/button";
-import { Edit, Trash } from "lucide-react";
-import AppointmentModal from "./AppointmentModal";
-import { useToast } from "@/hooks/use-toast";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { appointmentStatusMap, getDisplayStatus } from "./AgendaUtils";
 import AppointmentDetails from "./AppointmentDetails";
@@ -41,7 +35,6 @@ interface AppointmentListProps {
 const AppointmentList = ({ date, view }: AppointmentListProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editAppointment, setEditAppointment] = useState<Appointment | null>(null);
   const [detailsAppointment, setDetailsAppointment] = useState<Appointment | null>(null);
   const { toast } = useToast();
 
@@ -104,46 +97,12 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from("appointments")
-        .delete()
-        .eq("id", id);
-
-      if (error) {
-        console.error("Erro ao excluir agendamento:", error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível excluir o agendamento",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Sucesso",
-          description: "Agendamento excluído com sucesso",
-        });
-        fetchAppointments();
-      }
-    } catch (error) {
-      console.error("Erro ao excluir agendamento:", error);
-    }
-  };
-
   // Renderização baseada na visualização selecionada
   if (view === "day") {
-    const hours = eachHourOfInterval({
-      start: new Date(date.setHours(8, 0, 0, 0)),
-      end: new Date(date.setHours(18, 0, 0, 0)),
-    });
-
-    // Filter hours that have appointments
-    const hoursWithAppointments = hours.filter(hour => {
-      return appointments.some(apt => {
-        const aptDate = new Date(apt.start_time);
-        return aptDate.getHours() === hour.getHours();
-      });
-    });
+    // Filter appointments for the selected day and sort by start time
+    const dayAppointments = appointments
+      .filter(apt => isSameDay(new Date(apt.start_time), date))
+      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
     return (
       <div>
@@ -155,33 +114,21 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
           </div>
         ) : (
           <>
-            {hoursWithAppointments.length > 0 ? (
-              <div className="space-y-1">
-                {hoursWithAppointments.map((hour) => {
-                  const hourAppointments = appointments.filter((apt) => {
-                    const aptDate = new Date(apt.start_time);
-                    return aptDate.getHours() === hour.getHours();
-                  });
-
-                  return (
-                    <div key={hour.toString()} className="border-t py-2">
-                      <div className="flex items-center text-sm text-gray-500 mb-1">
-                        {format(hour, "HH:mm")}
-                      </div>
-                      
-                      <div className="space-y-2">
-                        {hourAppointments.map((appointment) => (
-                          <AppointmentCard
-                            key={appointment.id}
-                            appointment={appointment}
-                            onClick={() => setDetailsAppointment(appointment)}
-                            variant="day"
-                          />
-                        ))}
-                      </div>
+            {dayAppointments.length > 0 ? (
+              <div className="space-y-2">
+                {dayAppointments.map((appointment) => (
+                  <div key={appointment.id} className="border-t py-2">
+                    <div className="flex items-center text-sm text-gray-500 mb-1">
+                      {format(new Date(appointment.start_time), "HH:mm")}
                     </div>
-                  );
-                })}
+                    
+                    <AppointmentCard
+                      appointment={appointment}
+                      onClick={() => setDetailsAppointment(appointment)}
+                      variant="day"
+                    />
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="text-center py-6 text-gray-500">
