@@ -23,6 +23,19 @@ const AppointmentPaymentStatusSelect = ({ form }: AppointmentPaymentStatusSelect
                 // Handle null as a string but convert it to actual null
                 const value = e.target.value === "null" ? null : e.target.value;
                 field.onChange(value);
+                
+                // Update appointment status based on payment status
+                if (value === "pago") {
+                  form.setValue("status", "finalizado");
+                } else if (value === "pendente") {
+                  form.setValue("status", "pagamento pendente");
+                } else if (value === null) {
+                  // Only change status if current status is inconsistent
+                  const currentStatus = form.getValues("status");
+                  if (currentStatus === "finalizado" || currentStatus === "pagamento pendente") {
+                    form.setValue("status", "agendado");
+                  }
+                }
               }}
             >
               <option value="null">
