@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { formatDateTime, appointmentStatusMap, getDisplayStatus } from "./AgendaUtils";
 import { 
@@ -150,53 +151,93 @@ const AppointmentDetails = ({
     }
   };
 
-  const handleDelete = async (deleteAll: boolean = false) => {
-    setIsDeleting(true);
+  // Função otimizada para excluir um único agendamento
+  const deleteSingleAppointment = async () => {
     try {
-      if (isRecurring && deleteAll) {
-        // Delete all recurring appointments with the same client, date, and recurrence pattern
-        // First, get all appointments with the same client and recurrence pattern
-        const startOfDay = new Date(appointment.start_time);
-        startOfDay.setHours(0, 0, 0, 0);
-        
-        const endOfDay = new Date(appointment.start_time);
-        endOfDay.setHours(23, 59, 59, 999);
-        
-        const { data: relatedAppointments, error: fetchError } = await supabase
-          .from("appointments")
-          .delete()
-          .eq("client_id", appointment.client_id)
-          .eq("recurrence", appointment.recurrence)
-          .gte("created_at", appointment.created_at || new Date().toISOString())
-          .select();
+      const { error } = await supabase
+        .from("appointments")
+        .delete()
+        .eq("id", appointment.id);
 
-        if (fetchError) {
-          throw fetchError;
-        }
+      if (error) throw error;
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting single appointment:", error);
+      throw error;
+    }
+  };
 
-        toast({
-          title: "Sucesso",
-          description: "Todos os agendamentos recorrentes foram excluídos com sucesso",
-        });
-      } else {
-        // Delete just this appointment
-        const { error } = await supabase
-          .from("appointments")
-          .delete()
-          .eq("id", appointment.id);
+  // Função otimizada para excluir vários agendamentos recorrentes
+  const deleteAllRecurringAppointments = async () => {
+    try {
+      // First, get the IDs of all appointments in the recurring series
+      // We find them by matching client_id, recurrence type, and creation timestamp
+      const { data: relatedAppointments, error: fetchError } = await supabase
+        .from("appointments")
+        .select("id")
+        .eq("client_id", appointment.client_id)
+        .eq("recurrence", appointment.recurrence)
+        .gte("created_at", appointment.created_at || new Date().toISOString());
 
-        if (error) {
-          throw error;
-        }
-
-        toast({
-          title: "Sucesso",
-          description: "Agendamento excluído com sucesso",
-        });
+      if (fetchError) throw fetchError;
+      
+      if (!relatedAppointments || relatedAppointments.length === 0) {
+        return true; // No appointments to delete
       }
       
-      onOpenChange(false);
-      if (onSuccess) onSuccess();
+      // Extract just the IDs
+      const appointmentIds = relatedAppointments.map(app => app.id);
+      
+      // Delete all appointments in a single operation
+      const { error: deleteError } = await supabase
+        .from("appointments")
+        .delete()
+        .in("id", appointmentIds);
+        
+      if (deleteError) throw deleteError;
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting recurring appointments:", error);
+      throw error;
+    }
+  };
+
+  // Função principal de exclusão com tratamento de erros aprimorado
+  const handleDelete = async (deleteAll: boolean = false) => {
+    setIsDeleting(true);
+    
+    try {
+      let success = false;
+      
+      if (isRecurring && deleteAll) {
+        // Delete all recurring appointments
+        success = await deleteAllRecurringAppointments();
+        
+        if (success) {
+          toast({
+            title: "Sucesso",
+            description: "Todos os agendamentos recorrentes foram excluídos com sucesso",
+          });
+        }
+      } else {
+        // Delete just this appointment
+        success = await deleteSingleAppointment();
+        
+        if (success) {
+          toast({
+            title: "Sucesso",
+            description: "Agendamento excluído com sucesso",
+          });
+        }
+      }
+      
+      // Fechar modal e atualizar lista apenas se a operação foi bem-sucedida
+      if (success) {
+        onOpenChange(false);
+        if (onSuccess) onSuccess();
+      }
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -303,6 +344,7 @@ const AppointmentDetails = ({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 className="w-full sm:w-auto"
+                disabled={isDeleting || isUpdating}
               >
                 Fechar
               </Button>
@@ -313,7 +355,7 @@ const AppointmentDetails = ({
                 variant="destructive" 
                 className="flex items-center gap-1 w-full sm:w-auto"
                 onClick={() => handleUpdateStatus("cancelado", "não definido")}
-                disabled={isUpdating}
+                disabled={isUpdating || isDeleting}
               >
                 <X className="h-4 w-4" />
                 Cancelar
@@ -326,7 +368,7 @@ const AppointmentDetails = ({
                   <Button 
                     variant="default"
                     className="flex items-center justify-between gap-2 w-full sm:w-auto"
-                    disabled={isUpdating}
+                    disabled={isUpdating || isDeleting}
                   >
                     <span className="flex items-center gap-1">
                       <Check className="h-4 w-4" />
@@ -357,6 +399,7 @@ const AppointmentDetails = ({
                 variant="outline" 
                 className="flex items-center gap-1 w-full sm:w-auto"
                 onClick={() => setShowEditModal(true)}
+                disabled={isDeleting || isUpdating}
               >
                 <Edit className="h-4 w-4" />
                 Editar
@@ -366,7 +409,7 @@ const AppointmentDetails = ({
                 variant="outline"
                 className="flex items-center gap-1 text-destructive w-full sm:w-auto"
                 onClick={() => isRecurring ? setShowDeleteConfirm(true) : handleDelete(false)}
-                disabled={isDeleting}
+                disabled={isDeleting || isUpdating}
               >
                 <Trash className="h-4 w-4" />
                 {isDeleting ? "Excluindo..." : "Excluir"}
@@ -386,18 +429,20 @@ const AppointmentDetails = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => handleDelete(false)}
+              disabled={isDeleting}
             >
-              Apenas este
+              {isDeleting ? "Excluindo..." : "Apenas este"}
             </AlertDialogAction>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => handleDelete(true)}
+              disabled={isDeleting}
             >
-              Todos os agendamentos
+              {isDeleting ? "Excluindo..." : "Todos os agendamentos"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
