@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { appointmentStatusMap, getDisplayStatus } from "./AgendaUtils";
 import AppointmentDetails from "./AppointmentDetails";
 import { useToast } from "@/hooks/use-toast";
+import { Repeat } from "lucide-react";
 
 // Updated Appointment type to use final_price instead of price
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
@@ -96,6 +97,13 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to check if an appointment is part of a recurrence
+  const isRecurringAppointment = (appointment: Appointment): boolean => {
+    return !!appointment.recurrence && 
+           appointment.recurrence !== 'none' && 
+           (appointment.recurrence_count || 0) > 1;
   };
 
   // Renderização baseada na visualização selecionada
@@ -273,6 +281,9 @@ const AppointmentCard = ({ appointment, onClick, variant, showDate = false }: Ap
   const displayStatus = getDisplayStatus(appointment.status);
   const statusConfig = appointmentStatusMap[displayStatus];
   const StatusIcon = statusConfig?.icon;
+  
+  // Check if this is a recurring appointment
+  const isRecurring = isRecurringAppointment(appointment);
 
   return (
     <div 
@@ -282,7 +293,15 @@ const AppointmentCard = ({ appointment, onClick, variant, showDate = false }: Ap
       <div className="flex justify-between items-start">
         <div className="flex-1">
           {variant !== "week" && (
-            <div className="font-medium mb-0.5 line-clamp-1">{appointment.clients?.name}</div>
+            <div className="font-medium mb-0.5 line-clamp-1 flex items-center gap-1">
+              {appointment.clients?.name}
+              {isRecurring && (
+                <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                  <Repeat className="h-3 w-3 mr-1" />
+                  Recorrente
+                </span>
+              )}
+            </div>
           )}
           
           <div className="text-sm text-gray-600">
@@ -297,8 +316,11 @@ const AppointmentCard = ({ appointment, onClick, variant, showDate = false }: Ap
           </div>
           
           {variant === "week" && (
-            <div className="text-sm font-medium line-clamp-1 mt-1">
+            <div className="text-sm font-medium line-clamp-1 mt-1 flex items-center gap-1">
               {appointment.clients?.name}
+              {isRecurring && (
+                <Repeat className="h-3 w-3 text-blue-500" />
+              )}
             </div>
           )}
           
@@ -329,6 +351,9 @@ const AppointmentCardCompact = ({ appointment, onClick }: { appointment: Appoint
   const displayStatus = getDisplayStatus(appointment.status);
   const statusConfig = appointmentStatusMap[displayStatus];
   const StatusIcon = statusConfig?.icon;
+  
+  // Check if this is a recurring appointment
+  const isRecurring = isRecurringAppointment(appointment);
 
   // Determine a cor de borda baseada no status
   const statusBorderClass = {
@@ -343,8 +368,11 @@ const AppointmentCardCompact = ({ appointment, onClick }: { appointment: Appoint
       onClick={onClick}
       className={`border-l-2 ${statusBorderClass} bg-white rounded-sm p-1 cursor-pointer hover:bg-gray-50 transition-colors text-xs`}
     >
-      <div className="font-semibold">
+      <div className="font-semibold flex items-center">
         {format(startTime, "HH:mm")}
+        {isRecurring && (
+          <Repeat className="h-2.5 w-2.5 ml-1 text-blue-500" />
+        )}
       </div>
       <div className="font-medium line-clamp-1">
         {appointment.clients?.name}

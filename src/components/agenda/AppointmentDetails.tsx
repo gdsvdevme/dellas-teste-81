@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { formatDateTime, appointmentStatusMap, getDisplayStatus } from "./AgendaUtils";
 import { 
@@ -8,9 +7,19 @@ import {
   DialogTitle,
   DialogFooter
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Edit, Trash, Check, X, ChevronDown } from "lucide-react";
+import { Edit, Trash, Check, X, ChevronDown, Repeat } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -59,11 +68,17 @@ const AppointmentDetails = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   // Estado para controlar os valores de serviços
   const [serviceValues, setServiceValues] = useState<Record<string, number>>({});
 
   if (!appointment) return null;
+
+  // Check if this is a recurring appointment
+  const isRecurring = !!appointment.recurrence && 
+                      appointment.recurrence !== 'none' && 
+                      (appointment.recurrence_count || 0) > 1;
 
   const displayStatus = getDisplayStatus(appointment.status);
   const statusConfig = appointmentStatusMap[displayStatus];
@@ -135,22 +150,51 @@ const AppointmentDetails = ({
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (deleteAll: boolean = false) => {
     setIsDeleting(true);
     try {
-      const { error } = await supabase
-        .from("appointments")
-        .delete()
-        .eq("id", appointment.id);
+      if (isRecurring && deleteAll) {
+        // Delete all recurring appointments with the same client, date, and recurrence pattern
+        // First, get all appointments with the same client and recurrence pattern
+        const startOfDay = new Date(appointment.start_time);
+        startOfDay.setHours(0, 0, 0, 0);
+        
+        const endOfDay = new Date(appointment.start_time);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        const { data: relatedAppointments, error: fetchError } = await supabase
+          .from("appointments")
+          .delete()
+          .eq("client_id", appointment.client_id)
+          .eq("recurrence", appointment.recurrence)
+          .gte("created_at", appointment.created_at || new Date().toISOString())
+          .select();
 
-      if (error) {
-        throw error;
+        if (fetchError) {
+          throw fetchError;
+        }
+
+        toast({
+          title: "Sucesso",
+          description: "Todos os agendamentos recorrentes foram excluídos com sucesso",
+        });
+      } else {
+        // Delete just this appointment
+        const { error } = await supabase
+          .from("appointments")
+          .delete()
+          .eq("id", appointment.id);
+
+        if (error) {
+          throw error;
+        }
+
+        toast({
+          title: "Sucesso",
+          description: "Agendamento excluído com sucesso",
+        });
       }
-
-      toast({
-        title: "Sucesso",
-        description: "Agendamento excluído com sucesso",
-      });
+      
       onOpenChange(false);
       if (onSuccess) onSuccess();
     } catch (error: any) {
@@ -161,6 +205,7 @@ const AppointmentDetails = ({
       });
     } finally {
       setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -171,6 +216,12 @@ const AppointmentDetails = ({
           <DialogHeader className="bg-gradient-to-r from-salon-primary/90 to-salon-primary p-4 sm:p-5 rounded-t-lg sticky top-0 z-[55]">
             <DialogTitle className="text-white flex items-center gap-2">
               <span>Detalhes do Agendamento</span>
+              {isRecurring && (
+                <span className="flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
+                  <Repeat className="h-3 w-3 mr-1" />
+                  Recorrente
+                </span>
+              )}
             </DialogTitle>
           </DialogHeader>
           
@@ -314,7 +365,7 @@ const AppointmentDetails = ({
               <Button 
                 variant="outline"
                 className="flex items-center gap-1 text-destructive w-full sm:w-auto"
-                onClick={handleDelete}
+                onClick={() => isRecurring ? setShowDeleteConfirm(true) : handleDelete(false)}
                 disabled={isDeleting}
               >
                 <Trash className="h-4 w-4" />
@@ -324,6 +375,33 @@ const AppointmentDetails = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Alert Dialog for confirming deletion of recurring appointments */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir agendamento recorrente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este é um agendamento recorrente. Deseja excluir apenas este agendamento ou todos os agendamentos desta série?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => handleDelete(false)}
+            >
+              Apenas este
+            </AlertDialogAction>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => handleDelete(true)}
+            >
+              Todos os agendamentos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {appointment && (
         <AppointmentModal

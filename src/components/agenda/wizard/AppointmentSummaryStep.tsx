@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AppointmentStepProps } from "../AppointmentWizard";
 import { formatDatePtBr } from "@/lib/date-utils";
+import { Repeat } from "lucide-react";
 
 const AppointmentSummaryStep = ({
   formValues,
@@ -20,6 +21,9 @@ const AppointmentSummaryStep = ({
     const customPrice = formValues.customPrices[service.id];
     return total + (customPrice !== undefined ? customPrice : service.price);
   }, 0);
+
+  // Check if this is a recurring appointment
+  const isRecurring = formValues.recurrence !== "none" && !!formValues.recurrence && formValues.recurrenceCount > 1;
 
   // Format recurrence info
   const getRecurrenceText = () => {
@@ -100,10 +104,14 @@ const AppointmentSummaryStep = ({
 
         {/* Recurrence info */}
         <div>
-          <h4 className="font-medium text-sm text-gray-500">Recorrência</h4>
+          <h4 className="font-medium text-sm text-gray-500 flex items-center gap-1">
+            Recorrência
+            {isRecurring && <Repeat className="h-3.5 w-3.5 text-blue-600" />}
+          </h4>
           <p>{getRecurrenceText()}</p>
           {formValues.recurrence !== "none" && formValues.recurrence && formValues.recurrenceCount > 1 && (
-            <p className="text-sm text-blue-600 mt-1">
+            <p className="text-sm text-blue-600 mt-1 flex items-center gap-1 bg-blue-50 p-1.5 rounded">
+              <Repeat className="h-3.5 w-3.5" />
               Este agendamento será repetido {formValues.recurrenceCount - 1} vezes conforme a configuração de recorrência.
             </p>
           )}
