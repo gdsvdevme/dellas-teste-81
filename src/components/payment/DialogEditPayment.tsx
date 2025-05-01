@@ -142,7 +142,7 @@ export function DialogEditPayment({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-xl rounded-lg overflow-y-auto max-h-[85vh] p-0">
+      <DialogContent className="sm:max-w-2xl rounded-lg overflow-y-auto max-h-[85vh] p-0">
         <DialogHeader className="bg-gradient-to-r from-salon-primary/90 to-salon-primary p-4 sm:p-6 rounded-t-lg sticky top-0 z-[55]">
           <DialogTitle className="text-white">Editar Pagamento</DialogTitle>
           <DialogDescription className="text-white/80">
@@ -156,58 +156,60 @@ export function DialogEditPayment({
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4 sm:p-6">
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status do Agendamento</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="rounded-md border-salon-secondary/50">
-                        <SelectValue placeholder="Selecione um status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="rounded-md border-salon-secondary/30 z-[75]">
-                      <SelectItem value="agendado">Agendado</SelectItem>
-                      <SelectItem value="finalizado">Finalizado</SelectItem>
-                      <SelectItem value="cancelado">Cancelado</SelectItem>
-                      <SelectItem value="pagamento pendente">Pagamento Pendente</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status do Agendamento</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="rounded-md border-salon-secondary/50">
+                          <SelectValue placeholder="Selecione um status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-md border-salon-secondary/30 z-[75]">
+                        <SelectItem value="agendado">Agendado</SelectItem>
+                        <SelectItem value="finalizado">Finalizado</SelectItem>
+                        <SelectItem value="cancelado">Cancelado</SelectItem>
+                        <SelectItem value="pagamento pendente">Pagamento Pendente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="payment_status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status do Pagamento</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="rounded-md border-salon-secondary/50">
-                        <SelectValue placeholder="Selecione um status de pagamento" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="rounded-md border-salon-secondary/30 z-[75]">
-                      <SelectItem value="não definido">Não definido</SelectItem>
-                      <SelectItem value="pendente">Pendente</SelectItem>
-                      <SelectItem value="pago">Pago</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="payment_status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status do Pagamento</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="rounded-md border-salon-secondary/50">
+                          <SelectValue placeholder="Selecione um status de pagamento" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-md border-salon-secondary/30 z-[75]">
+                        <SelectItem value="não definido">Não definido</SelectItem>
+                        <SelectItem value="pendente">Pendente</SelectItem>
+                        <SelectItem value="pago">Pago</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}

@@ -167,7 +167,7 @@ const AppointmentDetails = ({
   return (
     <>
       <Dialog open={open && !showEditModal} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-xl p-0 rounded-lg overflow-y-auto max-h-[85vh]">
+        <DialogContent className="sm:max-w-3xl p-0 rounded-lg overflow-y-auto max-h-[85vh]">
           <DialogHeader className="bg-gradient-to-r from-salon-primary/90 to-salon-primary p-4 sm:p-5 rounded-t-lg sticky top-0 z-[55]">
             <DialogTitle className="text-white flex items-center gap-2">
               <span>Detalhes do Agendamento</span>
@@ -175,22 +175,25 @@ const AppointmentDetails = ({
           </DialogHeader>
           
           <div className="space-y-4 p-4 sm:p-6">
-            {/* Seção Cliente */}
-            <Card className="shadow-sm">
-              <CardContent className="p-4">
-                <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-1">CLIENTE</h3>
-                <p className="text-lg font-medium">{appointment.clients?.name || "Cliente não especificado"}</p>
-              </CardContent>
-            </Card>
-            
-            {/* Seção Data e Hora */}
-            <Card className="shadow-sm">
-              <CardContent className="p-4">
-                <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-1">DATA E HORA</h3>
-                <p className="font-medium">{formatDateTime(appointment.start_time, "PPP")}</p>
-                <p>{formatDateTime(appointment.start_time, "HH:mm")}</p>
-              </CardContent>
-            </Card>
+            {/* Seção Cliente e Data em grid responsivo */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Seção Cliente */}
+              <Card className="shadow-sm">
+                <CardContent className="p-4">
+                  <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-1">CLIENTE</h3>
+                  <p className="text-lg font-medium">{appointment.clients?.name || "Cliente não especificado"}</p>
+                </CardContent>
+              </Card>
+              
+              {/* Seção Data e Hora */}
+              <Card className="shadow-sm">
+                <CardContent className="p-4">
+                  <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-1">DATA E HORA</h3>
+                  <p className="font-medium">{formatDateTime(appointment.start_time, "PPP")}</p>
+                  <p>{formatDateTime(appointment.start_time, "HH:mm")}</p>
+                </CardContent>
+              </Card>
+            </div>
             
             {/* Seção Serviços */}
             <Card className="shadow-sm">
@@ -201,7 +204,7 @@ const AppointmentDetails = ({
                     {services.map((service, index) => (
                       <div key={index} className="flex justify-between items-center">
                         <span className="text-sm font-medium flex-1">{service.name}</span>
-                        <div className="flex items-center gap-1 w-28">
+                        <div className="flex items-center gap-1 w-40">
                           <span className="text-sm font-medium text-muted-foreground">R$</span>
                           <Input 
                             type="number" 
