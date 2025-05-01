@@ -174,7 +174,7 @@ const Pagamentos: React.FC = () => {
   const paidColumns = [
     {
       header: "Data",
-      accessorKey: "start_time",
+      accessorKey: (appointment: Appointment) => appointment.start_time,
       cell: (info: any) => {
         const date = info.row.original.start_time;
         return date ? format(new Date(date), "dd/MM/yyyy HH:mm") : "Data não disponível";
@@ -182,12 +182,17 @@ const Pagamentos: React.FC = () => {
     },
     {
       header: "Cliente",
-      accessorKey: "client.name",
+      accessorKey: (appointment: Appointment) => appointment.client?.name || "",
       cell: (info: any) => info.row.original.client?.name || "Cliente não especificado"
     },
     {
       header: "Serviço",
-      accessorKey: "service_name",
+      accessorKey: (appointment: Appointment) => {
+        const services = appointment.appointment_services || [];
+        return services.length > 0
+          ? services.map((as: any) => as.service?.name).filter(Boolean).join(", ")
+          : "Não especificado";
+      },
       cell: (info: any) => {
         const services = info.row.original.appointment_services || [];
         return services.length > 0
@@ -197,7 +202,7 @@ const Pagamentos: React.FC = () => {
     },
     {
       header: "Status",
-      accessorKey: "status",
+      accessorKey: "status" as keyof Appointment,
       cell: (info: any) => (
         <StatusBadge variant={info.row.original.status === "finalizado" ? "success" : "warning"}>
           {info.row.original.status === "finalizado" ? "Finalizado" : "Agendado"}
@@ -206,12 +211,12 @@ const Pagamentos: React.FC = () => {
     },
     {
       header: "Valor",
-      accessorKey: "final_price",
+      accessorKey: "final_price" as keyof Appointment,
       cell: (info: any) => `R$ ${info.row.original.final_price || 0}`
     },
     {
       header: "Ações",
-      accessorKey: "id",
+      accessorKey: "id" as keyof Appointment,
       cell: (info: any) => (
         <Button 
           size="sm" 
@@ -366,7 +371,7 @@ const Pagamentos: React.FC = () => {
                 <DataTable
                   data={paidAppointments}
                   columns={paidColumns}
-                  searchField="client.name"
+                  searchField={(appointment: Appointment) => appointment.client?.name || ""}
                 />
               )}
             </>

@@ -25,7 +25,7 @@ interface DataTableProps<T> {
     accessorKey: keyof T | ((row: T) => React.ReactNode);
     cell?: (info: any) => React.ReactNode;
   }[];
-  searchField?: keyof T;
+  searchField?: keyof T | ((row: T) => string);
   pageSize?: number;
 }
 
@@ -43,13 +43,20 @@ export function DataTable<T>({
     ? data.filter((item) => {
         if (!item) return false;
         
-        // Handle nested properties using dot notation (e.g., 'client.name')
-        const fieldPath = String(searchField).split('.');
-        let fieldValue: any = item;
+        let fieldValue: any;
         
-        for (const path of fieldPath) {
-          if (!fieldValue) return false;
-          fieldValue = fieldValue[path as keyof typeof fieldValue];
+        // Handle function-based searchFields
+        if (typeof searchField === 'function') {
+          fieldValue = searchField(item);
+        } else {
+          // Handle nested properties using dot notation (e.g., 'client.name')
+          const fieldPath = String(searchField).split('.');
+          fieldValue = item;
+          
+          for (const path of fieldPath) {
+            if (!fieldValue) return false;
+            fieldValue = fieldValue[path as keyof typeof fieldValue];
+          }
         }
         
         return fieldValue && String(fieldValue).toLowerCase().includes(searchQuery.toLowerCase());
