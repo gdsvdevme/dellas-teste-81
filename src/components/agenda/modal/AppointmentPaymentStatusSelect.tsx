@@ -28,10 +28,10 @@ const AppointmentPaymentStatusSelect = ({ form }: AppointmentPaymentStatusSelect
               <option value="null">
                 {i18n.paymentStatus.null}
               </option>
-              <option value="pending">
+              <option value="pendente">
                 {i18n.paymentStatus.pending}
               </option>
-              <option value="paid">
+              <option value="pago">
                 {i18n.paymentStatus.paid}
               </option>
             </select>

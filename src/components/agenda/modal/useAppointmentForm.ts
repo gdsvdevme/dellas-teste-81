@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,8 +27,8 @@ export const appointmentSchema = z.object({
   date: z.date({ required_error: "A data é obrigatória" }),
   startTime: z.string({ required_error: "O horário é obrigatório" }),
   notes: z.string().optional(),
-  status: z.enum(["scheduled", "cancelled", "completed"]),
-  paymentStatus: z.enum(["pending", "paid"]).nullable(),
+  status: z.enum(["agendado", "cancelado", "finalizado"]),
+  paymentStatus: z.enum(["pendente", "pago"]).nullable(),
   customPrices: z.record(z.string(), z.number()).optional(),
 });
 
@@ -60,7 +61,7 @@ export const useAppointmentForm = ({
       date: selectedDate || new Date(),
       startTime: "09:00",
       notes: "",
-      status: "scheduled",
+      status: "agendado",
       paymentStatus: null,
       customPrices: {},
     },
@@ -79,6 +80,10 @@ export const useAppointmentForm = ({
         });
       }
       
+      // Map database status values to form values
+      const formStatus = mapDatabaseStatusToForm(appointment.status);
+      const formPaymentStatus = mapDatabasePaymentStatusToForm(appointment.payment_status);
+      
       form.reset({
         clientId: appointment.client_id,
         serviceIds: appointment.appointment_services?.map(s => s.service_id) || [],
@@ -86,14 +91,52 @@ export const useAppointmentForm = ({
         startTime: startDate.getHours().toString().padStart(2, '0') + ":" + 
                   startDate.getMinutes().toString().padStart(2, '0'),
         notes: appointment.notes || "",
-        status: appointment.status as "scheduled" | "cancelled" | "completed",
-        paymentStatus: appointment.payment_status as "pending" | "paid" | null,
+        status: formStatus,
+        paymentStatus: formPaymentStatus,
         customPrices: customPrices,
       });
     } else if (selectedDate) {
       form.setValue("date", selectedDate);
     }
   }, [appointment, selectedDate, form]);
+
+  // Helper functions to map between database and form status values
+  const mapDatabaseStatusToForm = (dbStatus: string): "agendado" | "cancelado" | "finalizado" => {
+    switch (dbStatus) {
+      case "scheduled": return "agendado";
+      case "cancelled": return "cancelado";
+      case "completed": return "finalizado";
+      default: return "agendado";
+    }
+  };
+
+  const mapDatabasePaymentStatusToForm = (dbStatus: string | null): "pendente" | "pago" | null => {
+    if (dbStatus === null) return null;
+    switch (dbStatus) {
+      case "pending": return "pendente";
+      case "paid": return "pago";
+      default: return null;
+    }
+  };
+
+  // Helper functions to map from form values to database values
+  const mapFormStatusToDatabase = (formStatus: string): string => {
+    switch (formStatus) {
+      case "agendado": return "scheduled";
+      case "cancelado": return "cancelled";
+      case "finalizado": return "completed";
+      default: return "scheduled";
+    }
+  };
+
+  const mapFormPaymentStatusToDatabase = (formStatus: string | null): string | null => {
+    if (formStatus === null) return null;
+    switch (formStatus) {
+      case "pendente": return "pending";
+      case "pago": return "paid";
+      default: return null;
+    }
+  };
 
   const calculateEndTime = (values: AppointmentFormValues) => {
     const selectedServices = services.filter(service => 
@@ -133,14 +176,18 @@ export const useAppointmentForm = ({
         return total + (customPrice !== undefined ? customPrice : service.price);
       }, 0);
       
+      // Map form status values to database values
+      const dbStatus = mapFormStatusToDatabase(values.status);
+      const dbPaymentStatus = mapFormPaymentStatusToDatabase(values.paymentStatus);
+      
       // Prepare appointment data
       const appointmentData = {
         client_id: values.clientId,
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
         notes: values.notes,
-        status: values.status,
-        payment_status: values.paymentStatus,
+        status: dbStatus,
+        payment_status: dbPaymentStatus,
         final_price: totalPrice,
       };
       
@@ -213,7 +260,7 @@ export const useAppointmentForm = ({
           date: selectedDate || new Date(),
           startTime: "09:00",
           notes: "",
-          status: "scheduled",
+          status: "agendado",
           paymentStatus: null,
           customPrices: {},
         });

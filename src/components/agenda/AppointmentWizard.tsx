@@ -21,8 +21,8 @@ export type AppointmentFormValues = {
   date: Date;
   startTime: string;
   notes: string;
-  status: "scheduled" | "cancelled" | "completed";
-  paymentStatus: "pending" | "paid" | null;
+  status: "agendado" | "cancelado" | "finalizado";
+  paymentStatus: "pendente" | "pago" | null;
   recurrence: "none" | "weekly" | "biweekly" | "monthly" | null;
   customPrices: Record<string, number>;
 };
@@ -60,8 +60,8 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
     date: selectedDate || new Date(),
     startTime: "09:00",
     notes: "",
-    status: "scheduled", // Mantém como "scheduled" no código
-    paymentStatus: null, // Alterado para null conforme solicitado
+    status: "agendado",
+    paymentStatus: null,
     recurrence: "none",
     customPrices: {},
   });
@@ -163,14 +163,18 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
         return total + (customPrice !== undefined ? customPrice : service.price);
       }, 0);
       
+      // Map status values to database format
+      const dbStatus = mapFormStatusToDatabase(formValues.status);
+      const dbPaymentStatus = mapFormPaymentStatusToDatabase(formValues.paymentStatus);
+      
       // Prepare appointment data
       const appointmentData = {
         client_id: formValues.clientId,
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
         notes: formValues.notes,
-        status: "scheduled", // Mantém como "scheduled" no banco de dados
-        payment_status: null, // Alterado para null conforme solicitado
+        status: dbStatus,
+        payment_status: dbPaymentStatus,
         final_price: totalPrice,
         recurrence: formValues.recurrence === "none" ? null : formValues.recurrence,
       };
@@ -224,6 +228,25 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
       });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Helper functions to map between form values and database values
+  const mapFormStatusToDatabase = (formStatus: string): string => {
+    switch (formStatus) {
+      case "agendado": return "scheduled";
+      case "cancelado": return "cancelled";
+      case "finalizado": return "completed";
+      default: return "scheduled";
+    }
+  };
+
+  const mapFormPaymentStatusToDatabase = (formStatus: string | null): string | null => {
+    if (formStatus === null) return null;
+    switch (formStatus) {
+      case "pendente": return "pending";
+      case "pago": return "paid";
+      default: return null;
     }
   };
 

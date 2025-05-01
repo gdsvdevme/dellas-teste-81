@@ -19,13 +19,13 @@ const AppointmentStatusSelect = ({ form }: AppointmentStatusSelectProps) => {
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               {...field}
             >
-              <option value="scheduled">
+              <option value="agendado">
                 {i18n.appointmentStatus.scheduled}
               </option>
-              <option value="cancelled">
+              <option value="cancelado">
                 {i18n.appointmentStatus.cancelled}
               </option>
-              <option value="completed">
+              <option value="finalizado">
                 {i18n.appointmentStatus.completed}
               </option>
             </select>

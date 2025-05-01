@@ -187,7 +187,6 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
     );
   }
 
-  // Visualização semanal
   if (view === "week") {
     const weekStart = startOfWeek(date, { locale: ptBR });
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -295,6 +294,7 @@ const AppointmentCard = ({ appointment, onEdit, onDelete, showDate = false }: Ap
   const endTime = new Date(appointment.end_time);
   
   const getStatusColor = () => {
+    // Map database status to UI color
     switch (appointment.status) {
       case "scheduled":
         return "border-blue-500 bg-blue-50";
@@ -304,6 +304,16 @@ const AppointmentCard = ({ appointment, onEdit, onDelete, showDate = false }: Ap
         return "border-red-500 bg-red-50";
       default:
         return "border-gray-300";
+    }
+  };
+
+  // Translate status for display
+  const getDisplayStatus = (dbStatus: string) => {
+    switch (dbStatus) {
+      case "scheduled": return "Agendado";
+      case "cancelled": return "Cancelado";
+      case "completed": return "Finalizado";
+      default: return dbStatus;
     }
   };
 
@@ -324,6 +334,14 @@ const AppointmentCard = ({ appointment, onEdit, onDelete, showDate = false }: Ap
           </div>
           <div className="text-xs text-gray-500 mt-1">
             {appointment.appointment_services?.map((as) => as.services.name).join(", ")}
+          </div>
+          <div className="text-xs font-medium mt-1">
+            Status: {getDisplayStatus(appointment.status)}
+            {appointment.payment_status && (
+              <span className="ml-2">
+                Pagamento: {appointment.payment_status === "paid" ? "Pago" : "Pendente"}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex space-x-1">
