@@ -1,9 +1,23 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppointmentStepProps } from "../AppointmentWizard";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import DialogNewClient from "../modal/DialogNewClient";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown, UserPlus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const AppointmentClientStep = ({
   formValues,
@@ -12,11 +26,26 @@ const AppointmentClientStep = ({
   loadingClients,
 }: AppointmentStepProps) => {
   const [isNewClientDialogOpen, setIsNewClientDialogOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Função para lidar com a criação de novo cliente
+  // Function to handle client creation
   const handleClientCreated = (clientId: string, clientName: string) => {
     updateFormValues({ clientId });
+    setOpen(false);
   };
+
+  // Get the selected client name for display
+  const selectedClient = clients.find(client => client.id === formValues.clientId);
+
+  // Filter clients based on search query
+  const filteredClients = clients.filter(client => {
+    const query = searchQuery.toLowerCase();
+    return (
+      client.name.toLowerCase().includes(query) || 
+      (client.phone && client.phone.toLowerCase().includes(query))
+    );
+  });
 
   return (
     <div className="space-y-5">
@@ -26,34 +55,71 @@ const AppointmentClientStep = ({
         <div className="space-y-2">
           <label className="block text-sm font-medium">Cliente</label>
           <div className="flex gap-2">
-            <Select
-              value={formValues.clientId}
-              onValueChange={(value) => updateFormValues({ clientId: value })}
-              disabled={loadingClients}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecione um cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name} {client.phone ? `(${client.phone})` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  className="w-full justify-between"
+                  disabled={loadingClients}
+                >
+                  {selectedClient ? selectedClient.name : "Selecione um cliente"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-full min-w-[300px]" align="start">
+                <Command>
+                  <CommandInput 
+                    placeholder="Buscar cliente..." 
+                    value={searchQuery}
+                    onValueChange={setSearchQuery}
+                  />
+                  <CommandList>
+                    <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                    <CommandGroup heading="Clientes">
+                      {filteredClients.map((client) => (
+                        <CommandItem
+                          key={client.id}
+                          value={client.id}
+                          onSelect={() => {
+                            updateFormValues({ clientId: client.id });
+                            setOpen(false);
+                            setSearchQuery("");
+                          }}
+                          className="flex items-center justify-between py-3"
+                        >
+                          <div>
+                            <div className="font-medium">{client.name}</div>
+                            {client.phone && (
+                              <div className="text-sm text-muted-foreground">{client.phone}</div>
+                            )}
+                          </div>
+                          
+                          {formValues.clientId === client.id && (
+                            <Check className="h-4 w-4 text-primary" />
+                          )}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             <Button 
               type="button" 
               variant="outline"
               onClick={() => setIsNewClientDialogOpen(true)}
+              className="flex items-center whitespace-nowrap"
             >
+              <UserPlus className="mr-2 h-4 w-4" />
               Novo Cliente
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Dialog para adicionar novo cliente */}
+      {/* Dialog for adding new client */}
       <DialogNewClient
         open={isNewClientDialogOpen}
         onOpenChange={setIsNewClientDialogOpen}
