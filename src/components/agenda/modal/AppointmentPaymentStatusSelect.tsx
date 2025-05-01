@@ -5,10 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export const allowedPaymentStatus = [
   "pendente", 
-  "pago"
+  "pago",
+  "não definido"
 ] as const;
 
-export type PaymentStatus = typeof allowedPaymentStatus[number] | "não definido";
+export type PaymentStatus = typeof allowedPaymentStatus[number];
 
 interface AppointmentPaymentStatusSelectProps {
   form: any;
