@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -10,6 +9,7 @@ import AppointmentClientStep from "./wizard/AppointmentClientStep";
 import AppointmentServicesStep from "./wizard/AppointmentServicesStep";
 import AppointmentDateTimeStep from "./wizard/AppointmentDateTimeStep";
 import AppointmentSummaryStep from "./wizard/AppointmentSummaryStep";
+import { calculateRecurrenceDates } from "@/lib/date-utils";
 
 // Types
 type Client = Database["public"]["Tables"]["clients"]["Row"];
@@ -214,9 +214,89 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
         if (servicesError) throw servicesError;
       }
       
+      // NOVA FUNCIONALIDADE: Criar agendamentos recorrentes
+      if (formValues.recurrence !== "none" && formValues.recurrence !== null && 
+          formValues.recurrenceDays.length > 0 && formValues.recurrenceCount > 1) {
+        
+        // Calcular as datas futuras baseadas na recorrência
+        const futureDates = calculateRecurrenceDates(
+          startDate,
+          formValues.recurrence as "weekly" | "biweekly" | "monthly",
+          formValues.recurrenceDays,
+          formValues.recurrenceCount
+        );
+        
+        // Criar os agendamentos para cada data futura
+        if (futureDates.length > 0) {
+          const futureAppointments = futureDates.map(futureDate => {
+            // Calcular o horário de término para essa data
+            const futureEndDate = new Date(futureDate.getTime() + totalDuration * 60000);
+            
+            return {
+              client_id: formValues.clientId,
+              start_time: futureDate.toISOString(),
+              end_time: futureEndDate.toISOString(),
+              notes: `${formValues.notes} (Recorrente)`,
+              status: dbStatus,
+              payment_status: dbPaymentStatus,
+              final_price: totalPrice,
+              // Setamos estes como null para evitar que o sistema crie agendamentos recorrentes infinitamente
+              recurrence: null,
+              recurrence_days: null,
+              recurrence_count: null,
+            };
+          });
+          
+          // Inserir todos os agendamentos futuros
+          const { error: recurrenceError } = await supabase
+            .from("appointments")
+            .insert(futureAppointments);
+            
+          if (recurrenceError) {
+            console.error("Erro ao criar agendamentos recorrentes:", recurrenceError);
+            // Não lançamos erro para não interromper o fluxo principal
+            toast({
+              title: "Atenção",
+              description: "Agendamento principal criado, mas houve um erro ao criar as recorrências",
+              variant: "destructive",
+            });
+          } else {
+            // Adicionar serviços a cada agendamento recorrente
+            const { data: createdRecurrenceData } = await supabase
+              .from("appointments")
+              .select("id")
+              .in('notes', futureAppointments.map(a => a.notes))
+              .order('created_at', { ascending: false })
+              .limit(futureDates.length);
+              
+            if (createdRecurrenceData && createdRecurrenceData.length > 0) {
+              // Para cada agendamento recorrente, adicionamos os serviços
+              const allRecurrenceServices = createdRecurrenceData.flatMap(app => 
+                formValues.serviceIds.map(serviceId => {
+                  const customPrice = formValues.customPrices[serviceId];
+                  const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
+                  
+                  return {
+                    appointment_id: app.id,
+                    service_id: serviceId,
+                    final_price: customPrice !== undefined ? customPrice : defaultPrice,
+                  };
+                })
+              );
+              
+              await supabase
+                .from("appointment_services")
+                .insert(allRecurrenceServices);
+            }
+          }
+        }
+      }
+      
       toast({
         title: "Sucesso",
-        description: "Agendamento criado com sucesso",
+        description: formValues.recurrence !== "none" && formValues.recurrenceCount > 1
+          ? `Agendamento criado com sucesso com ${formValues.recurrenceCount - 1} recorrências`
+          : "Agendamento criado com sucesso",
       });
       
       // Reset form and close modal

@@ -11,11 +11,14 @@ import { i18n } from "@/lib/i18n";
 import AppointmentList from "@/components/agenda/AppointmentList";
 import AppointmentWizard from "@/components/agenda/AppointmentWizard";
 import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 
 const Agenda = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [view, setView] = useState<"day" | "week" | "month">("day");
   const [isAppointmentWizardOpen, setIsAppointmentWizardOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { toast } = useToast();
 
   // Format the date according to the current view
   const getFormattedDate = () => {
@@ -43,6 +46,17 @@ const Agenda = () => {
   const handleOpenWizard = () => {
     scrollToCenter();
     setIsAppointmentWizardOpen(true);
+  };
+
+  // Handle success after appointment creation
+  const handleAppointmentSuccess = () => {
+    // Atualiza a lista forçando um novo render
+    setRefreshKey(prev => prev + 1);
+    
+    toast({
+      title: "Agendamento salvo",
+      description: "A agenda foi atualizada com sucesso!",
+    });
   };
 
   return (
@@ -117,6 +131,7 @@ const Agenda = () => {
               <AppointmentList 
                 date={date} 
                 view={view}
+                key={refreshKey} // Força refresh quando muda
               />
             </CardContent>
           </Card>
@@ -127,10 +142,7 @@ const Agenda = () => {
       <AppointmentWizard
         open={isAppointmentWizardOpen}
         onClose={() => setIsAppointmentWizardOpen(false)}
-        onSuccess={() => {
-          // Refresh appointment list
-          window.location.reload();
-        }}
+        onSuccess={handleAppointmentSuccess}
         selectedDate={date}
       />
     </PageContainer>
