@@ -11,6 +11,7 @@ import Dashboard from "@/pages/Dashboard";
 import Agenda from "@/pages/Agenda";
 import Auth from "@/pages/Auth";
 import NotFound from "./pages/NotFound";
+import Pagamentos from "./pages/Pagamentos";
 
 // Página temporária para rotas ainda não implementadas
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -45,7 +46,7 @@ const App = () => (
               <Route path="/servicos" element={<PlaceholderPage title="Serviços" />} />
               <Route path="/estoque" element={<PlaceholderPage title="Estoque" />} />
               <Route path="/financas" element={<PlaceholderPage title="Finanças" />} />
-              <Route path="/pagamentos" element={<PlaceholderPage title="Pagamentos" />} />
+              <Route path="/pagamentos" element={<Pagamentos />} />
               <Route path="/relatorios" element={<PlaceholderPage title="Relatórios" />} />
               <Route path="/configuracoes" element={<PlaceholderPage title="Configurações" />} />
             </Route>
