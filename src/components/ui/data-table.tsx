@@ -74,25 +74,27 @@ export function DataTable<T>({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {searchField && (
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-salon-primary" />
           <Input
             placeholder="Buscar..."
-            className="pl-10"
+            className="pl-10 rounded-full border-salon-secondary/50 focus-visible:ring-salon-primary salon-input"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       )}
 
-      <div className="rounded-md border">
+      <div className="rounded-xl border border-salon-secondary/30 overflow-hidden bg-white shadow-sm">
         <Table>
-          <TableHeader>
-            <TableRow>
+          <TableHeader className="bg-gradient-to-r from-salon-primary/10 to-salon-rose/10">
+            <TableRow className="hover:bg-transparent">
               {columns.map((column, index) => (
-                <TableHead key={index}>{column.header}</TableHead>
+                <TableHead key={index} className="font-playfair font-medium text-foreground">
+                  {column.header}
+                </TableHead>
               ))}
             </TableRow>
           </TableHeader>
@@ -101,14 +103,17 @@ export function DataTable<T>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="text-center h-24"
+                  className="text-center h-32"
                 >
-                  Nenhum resultado encontrado
+                  <div className="flex flex-col items-center justify-center text-muted-foreground">
+                    <Search className="h-10 w-10 mb-2 text-salon-secondary" />
+                    <p>Nenhum resultado encontrado</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
               paginatedData.map((row, rowIndex) => (
-                <TableRow key={rowIndex}>
+                <TableRow key={rowIndex} className="hover:bg-salon-secondary/5 transition-colors">
                   {columns.map((column, columnIndex) => (
                     <TableCell key={columnIndex}>
                       {column.cell
@@ -147,17 +152,21 @@ export function DataTable<T>({
             <PaginationItem>
               <PaginationPrevious
                 onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                className={currentPage === 1 
+                  ? "pointer-events-none opacity-50" 
+                  : "hover:bg-salon-primary hover:text-white transition-colors"}
               />
             </PaginationItem>
-            <div className="flex items-center text-sm font-medium">
+            <div className="flex items-center text-sm font-medium px-4 py-2 rounded-md bg-salon-secondary/10">
               Página {currentPage} de {totalPages}
             </div>
             <PaginationItem>
               <PaginationNext
                 onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                 className={
-                  currentPage === totalPages ? "pointer-events-none opacity-50" : ""
+                  currentPage === totalPages 
+                  ? "pointer-events-none opacity-50" 
+                  : "hover:bg-salon-primary hover:text-white transition-colors"
                 }
               />
             </PaginationItem>

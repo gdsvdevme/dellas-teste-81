@@ -23,18 +23,18 @@ const AppointmentDateTimeStep = ({
   ];
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium mb-4">Selecione Data e Hora</h3>
+    <div className="space-y-5">
+      <h3 className="text-lg font-playfair font-medium mb-4 salon-gradient-text">Selecione Data e Hora</h3>
       
       {/* Date selection */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <label className="block text-sm font-medium">Data</label>
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               className={cn(
-                "w-full pl-3 text-left font-normal",
+                "w-full pl-3 text-left font-normal border-salon-secondary/50 rounded-xl",
                 !formValues.date && "text-muted-foreground"
               )}
             >
@@ -46,7 +46,7 @@ const AppointmentDateTimeStep = ({
               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent className="w-auto p-0 rounded-xl border-salon-secondary/30" align="start">
             <Calendar
               mode="single"
               selected={formValues.date}
@@ -60,21 +60,21 @@ const AppointmentDateTimeStep = ({
       </div>
 
       {/* Time selection */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <label className="block text-sm font-medium">Horário</label>
         <div className="flex items-center">
-          <Clock className="mr-2 h-4 w-4 opacity-50" />
+          <Clock className="mr-2 h-4 w-4 text-salon-primary" />
           <Input 
             type="time" 
             value={formValues.startTime}
             onChange={(e) => updateFormValues({ startTime: e.target.value })}
-            className="flex-1"
+            className="flex-1 salon-input border-salon-secondary/50"
           />
         </div>
       </div>
 
       {/* Recurrence selection */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <label className="block text-sm font-medium">Recorrência</label>
         <Select 
           value={formValues.recurrence || "none"}
@@ -82,10 +82,10 @@ const AppointmentDateTimeStep = ({
             recurrence: value === "none" ? null : value 
           })}
         >
-          <SelectTrigger>
+          <SelectTrigger className="border-salon-secondary/50 rounded-xl focus:ring-salon-primary">
             <SelectValue placeholder="Selecione a recorrência" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="rounded-xl border-salon-secondary/30">
             {recurrenceOptions.map(option => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
@@ -96,12 +96,12 @@ const AppointmentDateTimeStep = ({
       </div>
 
       {/* Notes field */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <label className="block text-sm font-medium">Observações</label>
         <textarea
           value={formValues.notes}
           onChange={(e) => updateFormValues({ notes: e.target.value })}
-          className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-[80px] w-full rounded-xl border border-salon-secondary/50 bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-salon-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Adicione observações se necessário..."
         />
       </div>

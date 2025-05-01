@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,21 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				salon: {
+					primary: '#9b87f5',
+					secondary: '#F7E1D7',
+					accent: '#DDB892',
+					muted: '#F8F5F2',
+					rose: '#E5989B',
+					lavender: '#B8B8FF',
+					cream: '#FFF1E6',
+					sage: '#E8F3D6',
 				}
+			},
+			fontFamily: {
+				playfair: ['Playfair Display', 'serif'],
+				quicksand: ['Quicksand', 'sans-serif'],
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -89,6 +104,13 @@ export default {
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out'
+			},
+			backgroundImage: {
+				'gradient-salon': 'linear-gradient(135deg, #9b87f5 0%, #E5989B 100%)',
+				'gradient-soft': 'linear-gradient(180deg, #F7E1D7 0%, #FFF1E6 100%)',
+			},
+			boxShadow: {
+				'salon': '0px 4px 20px rgba(229, 152, 155, 0.15)',
 			}
 		}
 	},

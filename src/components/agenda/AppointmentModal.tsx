@@ -114,15 +114,15 @@ const AppointmentModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="sm:max-w-[500px] rounded-2xl border-salon-secondary/30 p-0 overflow-hidden">
+        <DialogHeader className="bg-gradient-to-r from-salon-primary/20 to-salon-rose/20 p-6">
+          <DialogTitle className="font-playfair text-2xl">
             {appointment ? "Editar Agendamento" : "Novo Agendamento"}
           </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={onSubmit} className="space-y-4">
+          <form onSubmit={onSubmit} className="space-y-5 p-6">
             {/* Client */}
             <AppointmentClientSelect 
               clients={clients} 
@@ -151,15 +151,15 @@ const AppointmentModal = ({
               <AppointmentPaymentStatusSelect form={form} />
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="mt-6 pt-4 border-t border-salon-secondary/20">
               <Button
                 type="button"
-                variant="outline"
+                variant="salon-outline"
                 onClick={() => onOpenChange(false)}
               >
                 {i18n.system.cancel}
               </Button>
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" variant="salon" disabled={submitting}>
                 {submitting ? (
                   <div className="flex items-center">
                     <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
