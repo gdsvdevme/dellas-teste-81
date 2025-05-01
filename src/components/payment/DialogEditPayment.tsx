@@ -81,7 +81,12 @@ export function DialogEditPayment({
 
   // Handle form submission
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onUpdate(values);
+    // Ensure we're passing the required properties with non-optional values
+    onUpdate({
+      status: values.status,
+      payment_status: values.payment_status,
+      final_price: values.final_price,
+    });
   }
 
   return (
