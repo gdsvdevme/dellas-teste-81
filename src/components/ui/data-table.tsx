@@ -80,16 +80,16 @@ export function DataTable<T>({
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-salon-primary" />
           <Input
             placeholder="Buscar..."
-            className="pl-10 rounded-full border-salon-secondary/50 focus-visible:ring-salon-primary salon-input"
+            className="pl-10 rounded-md border-salon-secondary/50 focus-visible:ring-salon-primary"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       )}
 
-      <div className="rounded-xl border border-salon-secondary/30 overflow-hidden bg-white shadow-sm">
+      <div className="rounded-lg border border-salon-secondary/30 overflow-hidden bg-white shadow-sm">
         <Table>
-          <TableHeader className="bg-gradient-to-r from-salon-primary/10 to-salon-rose/10">
+          <TableHeader className="bg-salon-primary/5">
             <TableRow className="hover:bg-transparent">
               {columns.map((column, index) => (
                 <TableHead key={index} className="font-playfair font-medium text-foreground">
@@ -157,7 +157,7 @@ export function DataTable<T>({
                   : "hover:bg-salon-primary hover:text-white transition-colors"}
               />
             </PaginationItem>
-            <div className="flex items-center text-sm font-medium px-4 py-2 rounded-md bg-salon-secondary/10">
+            <div className="flex items-center text-sm font-medium px-4 py-2 rounded-md bg-salon-primary/5">
               Página {currentPage} de {totalPages}
             </div>
             <PaginationItem>

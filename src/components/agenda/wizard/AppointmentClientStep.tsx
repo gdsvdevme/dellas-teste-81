@@ -21,13 +21,13 @@ const AppointmentClientStep = ({
 
   return (
     <div>
-      <h3 className="text-lg font-medium mb-4">Selecione o Cliente</h3>
+      <h3 className="text-lg font-medium mb-4 text-salon-primary">Selecione o Cliente</h3>
       
       <div className="relative mb-4">
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
         <Input
           placeholder="Buscar cliente por nome ou telefone..."
-          className="pl-8"
+          className="pl-8 rounded-md border-salon-secondary/50"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -35,7 +35,7 @@ const AppointmentClientStep = ({
       
       {loadingClients ? (
         <div className="flex justify-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-salon-primary"></div>
         </div>
       ) : (
         <>
@@ -50,7 +50,7 @@ const AppointmentClientStep = ({
                   key={client.id}
                   className={`p-3 rounded-md border cursor-pointer transition-all ${
                     formValues.clientId === client.id
-                      ? "border-primary bg-primary/10"
+                      ? "border-salon-primary bg-salon-primary/10"
                       : "border-gray-200 hover:bg-gray-50"
                   }`}
                   onClick={() => updateFormValues({ clientId: client.id })}
@@ -63,7 +63,7 @@ const AppointmentClientStep = ({
                       )}
                     </div>
                     {formValues.clientId === client.id && (
-                      <Check className="h-5 w-5 text-primary" />
+                      <Check className="h-5 w-5 text-salon-primary" />
                     )}
                   </div>
                 </div>
@@ -73,7 +73,7 @@ const AppointmentClientStep = ({
           
           <Button
             variant="outline"
-            className="w-full flex items-center justify-center gap-2"
+            className="w-full flex items-center justify-center gap-2 rounded-md border-salon-secondary/50"
             onClick={() => {
               // This would normally open a dialog to add a new client
               // For now, just show a message

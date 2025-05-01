@@ -90,7 +90,7 @@ const Sidebar = () => {
           variant="outline"
           size="icon"
           onClick={toggleSidebar}
-          className="bg-background rounded-full shadow-salon border-salon-secondary"
+          className="bg-background rounded-md shadow-salon border-salon-secondary"
         >
           {isOpen ? (
             <X className="h-5 w-5 text-salon-primary" />
@@ -115,13 +115,13 @@ const Sidebar = () => {
           isOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"
         )}
       >
-        <div className="flex h-24 items-center justify-center border-b border-sidebar-border bg-gradient-to-r from-salon-primary/10 to-salon-rose/10">
-          <h1 className="font-playfair text-2xl font-bold salon-gradient-text">
+        <div className="flex h-24 items-center justify-center border-b border-sidebar-border bg-salon-primary/5">
+          <h1 className="font-playfair text-2xl font-semibold text-salon-primary">
             Dellas - Cabelo & Pele
           </h1>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-5 space-y-2.5">
+        <nav className="flex-1 overflow-y-auto p-5 space-y-2">
           {sidebarItems.map((item) => {
             const active = isActive(item.path);
             return (
@@ -130,10 +130,10 @@ const Sidebar = () => {
                 to={item.path}
                 onClick={() => setIsOpen(false)}
                 className={cn(
-                  "flex items-center gap-4 rounded-xl px-4 py-3 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  "flex items-center gap-4 rounded-md px-4 py-3 text-sidebar-foreground transition-all",
                   active
-                    ? "bg-gradient-to-r from-salon-primary to-salon-primary text-white shadow-sm hover:from-salon-primary hover:to-salon-primary hover:text-white"
-                    : "hover:translate-x-1"
+                    ? "bg-salon-primary text-white shadow-sm"
+                    : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -144,7 +144,7 @@ const Sidebar = () => {
         </nav>
 
         <div className="p-4 border-t border-sidebar-border">
-          <div className="p-4 rounded-xl bg-gradient-to-br from-salon-primary/20 to-salon-rose/20 text-center">
+          <div className="p-4 rounded-md bg-salon-primary/10 text-center">
             <p className="text-sm font-medium text-sidebar-foreground">
               Dellas - Cabelo & Pele
             </p>

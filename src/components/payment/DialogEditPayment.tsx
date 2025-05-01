@@ -91,9 +91,9 @@ export function DialogEditPayment({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] rounded-md">
         <DialogHeader>
-          <DialogTitle>Editar Pagamento</DialogTitle>
+          <DialogTitle className="text-salon-primary">Editar Pagamento</DialogTitle>
           <DialogDescription>
             Cliente: {appointment.client?.name}
             <br />
@@ -116,11 +116,11 @@ export function DialogEditPayment({
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="rounded-md border-salon-secondary/50">
                         <SelectValue placeholder="Selecione um status" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="rounded-md border-salon-secondary/30">
                       <SelectItem value="agendado">Agendado</SelectItem>
                       <SelectItem value="finalizado">Finalizado</SelectItem>
                       <SelectItem value="cancelado">Cancelado</SelectItem>
@@ -142,11 +142,11 @@ export function DialogEditPayment({
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="rounded-md border-salon-secondary/50">
                         <SelectValue placeholder="Selecione um status de pagamento" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="rounded-md border-salon-secondary/30">
                       <SelectItem value="pendente">Pendente</SelectItem>
                       <SelectItem value="pago">Pago</SelectItem>
                     </SelectContent>
@@ -167,6 +167,7 @@ export function DialogEditPayment({
                       type="number"
                       step="0.01"
                       placeholder="0.00"
+                      className="rounded-md border-salon-secondary/50"
                       {...field}
                       onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                     />
@@ -177,8 +178,8 @@ export function DialogEditPayment({
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button type="submit">Salvar Alterações</Button>
+              <Button type="button" variant="outline" onClick={onClose} className="rounded-md">Cancelar</Button>
+              <Button type="submit" variant="salon">Salvar Alterações</Button>
             </DialogFooter>
           </form>
         </Form>

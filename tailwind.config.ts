@@ -64,19 +64,19 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				salon: {
-					primary: '#9b87f5',
+					primary: '#7b3c87', // Deeper purple
 					secondary: '#F7E1D7',
-					accent: '#DDB892',
+					accent: '#c8a97e', // Professional gold
 					muted: '#F8F5F2',
-					rose: '#E5989B',
-					lavender: '#B8B8FF',
+					rose: '#a5556a', // Deeper rose tone
+					lavender: '#9b87f5', 
 					cream: '#FFF1E6',
 					sage: '#E8F3D6',
 				}
 			},
 			fontFamily: {
-				playfair: ['Playfair Display', 'serif'],
-				quicksand: ['Quicksand', 'sans-serif'],
+				playfair: ['Lora', 'serif'], // More professional serif font
+				quicksand: ['Inter', 'sans-serif'], // Clean, professional sans-serif
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -106,11 +106,11 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out'
 			},
 			backgroundImage: {
-				'gradient-salon': 'linear-gradient(135deg, #9b87f5 0%, #E5989B 100%)',
-				'gradient-soft': 'linear-gradient(180deg, #F7E1D7 0%, #FFF1E6 100%)',
+				'gradient-salon': 'linear-gradient(to right, #7b3c87, #a5556a)', // More subtle gradient
+				'gradient-soft': 'linear-gradient(to bottom, #F7E1D7 0%, #FFF1E6 100%)',
 			},
 			boxShadow: {
-				'salon': '0px 4px 20px rgba(229, 152, 155, 0.15)',
+				'salon': '0px 2px 8px rgba(0, 0, 0, 0.08)', // More subtle shadow
 			}
 		}
 	},

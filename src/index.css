@@ -1,5 +1,5 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Quicksand:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 325 6% 25%;
 
-    --primary: 267 82% 74%;
+    --primary: 293 38% 38%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 20 65% 90%;
@@ -25,7 +25,7 @@
     --muted: 20 33% 95%;
     --muted-foreground: 325 5% 45%;
 
-    --accent: 34 50% 72%;
+    --accent: 34 50% 64%;
     --accent-foreground: 325 6% 25%;
 
     --destructive: 0 84.2% 60.2%;
@@ -33,18 +33,18 @@
 
     --border: 20 30% 88%;
     --input: 20 30% 88%;
-    --ring: 267 82% 74%;
+    --ring: 293 38% 38%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 267 82% 97%;
+    --sidebar-background: 293 38% 98%;
     --sidebar-foreground: 325 6% 25%;
-    --sidebar-primary: 267 82% 74%;
+    --sidebar-primary: 293 38% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 20 65% 90%;
     --sidebar-accent-foreground: 325 6% 25%;
-    --sidebar-border: 267 40% 92%;
-    --sidebar-ring: 267 80% 74%;
+    --sidebar-border: 293 40% 92%;
+    --sidebar-ring: 293 38% 38%;
   }
 
   .dark {
@@ -57,7 +57,7 @@
     --popover: 325 6% 15%;
     --popover-foreground: 20 33% 98%;
 
-    --primary: 267 70% 70%;
+    --primary: 293 38% 38%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 325 30% 25%;
@@ -74,16 +74,16 @@
 
     --border: 325 30% 25%;
     --input: 325 30% 25%;
-    --ring: 267 70% 70%;
+    --ring: 293 38% 38%;
 
     --sidebar-background: 325 6% 15%;
     --sidebar-foreground: 20 33% 98%;
-    --sidebar-primary: 267 70% 70%;
+    --sidebar-primary: 293 38% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 325 20% 25%;
     --sidebar-accent-foreground: 20 33% 98%;
     --sidebar-border: 325 20% 25%;
-    --sidebar-ring: 267 70% 70%;
+    --sidebar-ring: 293 38% 38%;
   }
 }
 
@@ -94,26 +94,26 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Quicksand', sans-serif;
+    font-family: 'Inter', sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Lora', serif;
   }
 
   .salon-card {
-    @apply rounded-2xl bg-white border border-salon-secondary/30 shadow-salon p-6;
+    @apply rounded-lg bg-white border border-salon-secondary/30 shadow-salon p-6;
   }
 
   .salon-gradient-text {
-    @apply text-transparent bg-clip-text bg-gradient-salon;
+    @apply text-salon-primary font-medium;
   }
 
   .salon-button {
-    @apply rounded-full transition-all duration-300 hover:shadow-salon;
+    @apply rounded-lg transition-all duration-300 hover:shadow-salon;
   }
 
   .salon-input {
-    @apply rounded-xl border-salon-secondary focus-visible:ring-salon-primary;
+    @apply rounded-lg border-salon-secondary focus-visible:ring-salon-primary;
   }
 }

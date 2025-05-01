@@ -24,7 +24,7 @@ const AppointmentDateTimeStep = ({
 
   return (
     <div className="space-y-5">
-      <h3 className="text-lg font-playfair font-medium mb-4 salon-gradient-text">Selecione Data e Hora</h3>
+      <h3 className="text-lg font-playfair font-medium mb-4 text-salon-primary">Selecione Data e Hora</h3>
       
       {/* Date selection */}
       <div className="space-y-2.5">
@@ -34,7 +34,7 @@ const AppointmentDateTimeStep = ({
             <Button
               variant="outline"
               className={cn(
-                "w-full pl-3 text-left font-normal border-salon-secondary/50 rounded-xl",
+                "w-full pl-3 text-left font-normal border-salon-secondary/50 rounded-md",
                 !formValues.date && "text-muted-foreground"
               )}
             >
@@ -46,7 +46,7 @@ const AppointmentDateTimeStep = ({
               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 rounded-xl border-salon-secondary/30" align="start">
+          <PopoverContent className="w-auto p-0 rounded-md border-salon-secondary/30" align="start">
             <Calendar
               mode="single"
               selected={formValues.date}
@@ -68,7 +68,7 @@ const AppointmentDateTimeStep = ({
             type="time" 
             value={formValues.startTime}
             onChange={(e) => updateFormValues({ startTime: e.target.value })}
-            className="flex-1 salon-input border-salon-secondary/50"
+            className="flex-1 rounded-md border-salon-secondary/50"
           />
         </div>
       </div>
@@ -82,10 +82,10 @@ const AppointmentDateTimeStep = ({
             recurrence: value === "none" ? null : value 
           })}
         >
-          <SelectTrigger className="border-salon-secondary/50 rounded-xl focus:ring-salon-primary">
+          <SelectTrigger className="border-salon-secondary/50 rounded-md focus:ring-salon-primary">
             <SelectValue placeholder="Selecione a recorrência" />
           </SelectTrigger>
-          <SelectContent className="rounded-xl border-salon-secondary/30">
+          <SelectContent className="rounded-md border-salon-secondary/30">
             {recurrenceOptions.map(option => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
@@ -101,7 +101,7 @@ const AppointmentDateTimeStep = ({
         <textarea
           value={formValues.notes}
           onChange={(e) => updateFormValues({ notes: e.target.value })}
-          className="flex min-h-[80px] w-full rounded-xl border border-salon-secondary/50 bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-salon-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-[80px] w-full rounded-md border border-salon-secondary/50 bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-salon-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Adicione observações se necessário..."
         />
       </div>
