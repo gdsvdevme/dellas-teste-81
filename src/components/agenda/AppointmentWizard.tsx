@@ -172,10 +172,13 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
       const dbStatus = mapFormStatusToDatabase(formValues.status);
       const dbPaymentStatus = mapFormPaymentStatusToDatabase(formValues.paymentStatus);
       
-      // Generate a recurrence group ID for recurring appointments
-      const recurrenceGroupId = formValues.recurrence !== "none" ? crypto.randomUUID() : null;
+      // Check if this is a recurring appointment
+      const isRecurring = formValues.recurrence !== "none" && 
+                         formValues.recurrence !== null && 
+                         formValues.recurrenceCount > 1 &&
+                         formValues.recurrenceDays.length > 0;
 
-      // Prepare appointment data
+      // Prepare appointment data for the parent/first appointment
       const appointmentData = {
         client_id: formValues.clientId,
         start_time: startDate.toISOString(),
@@ -184,13 +187,16 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
         status: dbStatus,
         payment_status: dbPaymentStatus,
         final_price: totalPrice,
-        recurrence: formValues.recurrence === "none" ? null : formValues.recurrence,
-        recurrence_days: formValues.recurrenceDays.length > 0 ? formValues.recurrenceDays : null,
-        recurrence_count: formValues.recurrenceCount || 1,
-        recurrence_group_id: recurrenceGroupId,
+        // Only store recurrence info in the parent appointment
+        recurrence: isRecurring ? formValues.recurrence : null,
+        recurrence_days: isRecurring ? formValues.recurrenceDays : null,
+        recurrence_count: isRecurring ? formValues.recurrenceCount : null,
+        // Mark this as the parent appointment
+        is_parent: isRecurring,
+        parent_appointment_id: null
       };
       
-      // Create appointment
+      // Create parent appointment
       const { data, error } = await supabase
         .from("appointments")
         .insert(appointmentData)
@@ -199,14 +205,16 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
         
       if (error) throw error;
       
+      const parentId = data.id;
+      
       // Add appointment services with custom prices
-      if (data.id) {
+      if (parentId) {
         const appointmentServices = formValues.serviceIds.map(serviceId => {
           const customPrice = formValues.customPrices[serviceId];
           const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
           
           return {
-            appointment_id: data.id,
+            appointment_id: parentId,
             service_id: serviceId,
             final_price: customPrice !== undefined ? customPrice : defaultPrice,
           };
@@ -219,10 +227,8 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
         if (servicesError) throw servicesError;
       }
       
-      // Criar agendamentos recorrentes
-      if (formValues.recurrence !== "none" && formValues.recurrence !== null && 
-          formValues.recurrenceDays.length > 0 && formValues.recurrenceCount > 1) {
-        
+      // Criar agendamentos recorrentes (child appointments)
+      if (isRecurring) {
         // Calcular as datas futuras baseadas na recorrência
         const futureDates = calculateRecurrenceDates(
           startDate,
@@ -231,9 +237,9 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
           formValues.recurrenceCount
         );
         
-        // Criar os agendamentos para cada data futura
+        // Criar os agendamentos para cada data futura como child appointments
         if (futureDates.length > 0) {
-          const futureAppointments = futureDates.map(futureDate => {
+          const childAppointments = futureDates.map(futureDate => {
             // Calcular o horário de término para essa data
             const futureEndDate = new Date(futureDate.getTime() + totalDuration * 60000);
             
@@ -241,59 +247,60 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
               client_id: formValues.clientId,
               start_time: futureDate.toISOString(),
               end_time: futureEndDate.toISOString(),
-              notes: `${formValues.notes} (Recorrente)`,
+              notes: formValues.notes,
               status: dbStatus,
               payment_status: dbPaymentStatus,
               final_price: totalPrice,
-              // Use the same recurrence_group_id for all recurring appointments
-              recurrence_group_id: recurrenceGroupId,
-              // Set these as null to avoid creating nested recurrences
+              // Link to the parent appointment
+              parent_appointment_id: parentId,
+              // Child appointments don't store recurrence information
+              is_parent: false,
               recurrence: null,
               recurrence_days: null,
               recurrence_count: null,
             };
           });
           
-          // Inserir todos os agendamentos futuros
-          const { error: recurrenceError } = await supabase
-            .from("appointments")
-            .insert(futureAppointments);
-            
-          if (recurrenceError) {
-            console.error("Erro ao criar agendamentos recorrentes:", recurrenceError);
-            // Não lançamos erro para não interromper o fluxo principal
-            toast({
-              title: "Atenção",
-              description: "Agendamento principal criado, mas houve um erro ao criar as recorrências",
-              variant: "destructive",
-            });
-          } else {
-            // Adicionar serviços a cada agendamento recorrente
-            const { data: createdRecurrenceData } = await supabase
+          // Insert all child appointments in a single operation
+          if (childAppointments.length > 0) {
+            const { error: childrenError } = await supabase
               .from("appointments")
-              .select("id")
-              .eq("recurrence_group_id", recurrenceGroupId)
-              .order('created_at', { ascending: false })
-              .limit(futureDates.length);
+              .insert(childAppointments);
               
-            if (createdRecurrenceData && createdRecurrenceData.length > 0) {
-              // Para cada agendamento recorrente, adicionamos os serviços
-              const allRecurrenceServices = createdRecurrenceData.flatMap(app => 
-                formValues.serviceIds.map(serviceId => {
-                  const customPrice = formValues.customPrices[serviceId];
-                  const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
-                  
-                  return {
-                    appointment_id: app.id,
-                    service_id: serviceId,
-                    final_price: customPrice !== undefined ? customPrice : defaultPrice,
-                  };
-                })
-              );
-              
-              await supabase
-                .from("appointment_services")
-                .insert(allRecurrenceServices);
+            if (childrenError) {
+              console.error("Erro ao criar agendamentos recorrentes:", childrenError);
+              // Don't throw error to avoid interrupting the main flow
+              toast({
+                title: "Atenção",
+                description: "Agendamento principal criado, mas houve um erro ao criar as recorrências",
+                variant: "destructive",
+              });
+            } else {
+              // Get the IDs of all child appointments
+              const { data: childrenData } = await supabase
+                .from("appointments")
+                .select("id")
+                .eq("parent_appointment_id", parentId);
+                
+              if (childrenData && childrenData.length > 0) {
+                // Create appointment services for each child appointment
+                const allChildrenServices = childrenData.flatMap(child => 
+                  formValues.serviceIds.map(serviceId => {
+                    const customPrice = formValues.customPrices[serviceId];
+                    const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
+                    
+                    return {
+                      appointment_id: child.id,
+                      service_id: serviceId,
+                      final_price: customPrice !== undefined ? customPrice : defaultPrice,
+                    };
+                  })
+                );
+                
+                await supabase
+                  .from("appointment_services")
+                  .insert(allChildrenServices);
+              }
             }
           }
         }
@@ -301,7 +308,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
       
       toast({
         title: "Sucesso",
-        description: formValues.recurrence !== "none" && formValues.recurrenceCount > 1
+        description: isRecurring
           ? `Agendamento criado com sucesso com ${formValues.recurrenceCount - 1} recorrências`
           : "Agendamento criado com sucesso",
       });

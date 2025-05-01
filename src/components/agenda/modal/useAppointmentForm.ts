@@ -18,6 +18,8 @@ type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
     final_price: number;
     services: { name: string; duration: number };
   }> | null;
+  is_parent?: boolean;
+  parent_appointment_id?: string | null;
 };
 
 type Service = Database["public"]["Tables"]["services"]["Row"];
@@ -108,6 +110,16 @@ export const useAppointmentForm = ({
         uiStatus = "pagamento pendente";
       }
       
+      // For parent appointments, we use their recurrence settings
+      // For child appointments, we don't show recurrence options
+      const recurrenceSettings = appointment.is_parent ? {
+        recurrence: appointment.recurrence as "weekly" | "biweekly" | "monthly" | "none" | null || "none",
+        recurrenceDays: appointment.recurrence_days || [],
+      } : {
+        recurrence: "none" as const,
+        recurrenceDays: [] as string[],
+      };
+      
       form.reset({
         clientId: appointment.client_id,
         serviceIds: appointment.appointment_services?.map(s => s.service_id) || [],
@@ -117,8 +129,7 @@ export const useAppointmentForm = ({
         notes: appointment.notes || "",
         status: uiStatus,
         paymentStatus: uiPaymentStatus,
-        recurrence: appointment.recurrence as "weekly" | "biweekly" | "monthly" | "none" | null || "none",
-        recurrenceDays: appointment.recurrence_days || [],
+        ...recurrenceSettings,
         customPrices: customPrices,
       });
     } else if (selectedDate) {
@@ -183,6 +194,10 @@ export const useAppointmentForm = ({
         default: dbPaymentStatus = "undefined";
       }
       
+      // Determine if this is a parent appointment being edited
+      const isParentAppointment = appointment?.is_parent || false;
+      const hasParent = appointment?.parent_appointment_id !== null && appointment?.parent_appointment_id !== undefined;
+      
       // Prepare appointment data
       const appointmentData = {
         client_id: values.clientId,
@@ -192,8 +207,11 @@ export const useAppointmentForm = ({
         status: dbStatus,
         payment_status: dbPaymentStatus,
         final_price: totalPrice,
-        recurrence: values.recurrence === "none" ? null : values.recurrence,
-        recurrence_days: values.recurrenceDays.length > 0 ? values.recurrenceDays : null,
+        // Only update recurrence info if this is a parent appointment
+        ...(isParentAppointment && {
+          recurrence: values.recurrence === "none" ? null : values.recurrence,
+          recurrence_days: values.recurrenceDays.length > 0 ? values.recurrenceDays : null,
+        })
       };
       
       let appointmentId = appointment?.id;
@@ -215,21 +233,67 @@ export const useAppointmentForm = ({
           .eq("appointment_id", appointment.id);
           
         if (deleteError) throw deleteError;
-      } else {
-        // Get or generate a recurrence_group_id
-        const recurrenceGroupId = values.recurrence !== "none" && values.recurrence !== null ? 
-          crypto.randomUUID() : null;
-          
-        // Add recurrence_group_id to the data
-        const newAppointmentData = { 
-          ...appointmentData,
-          recurrence_group_id: recurrenceGroupId
-        };
         
+        // If this is a parent appointment and time/date changed, update all child appointments
+        if (isParentAppointment) {
+          // Get all child appointments
+          const { data: childAppointments, error: fetchError } = await supabase
+            .from("appointments")
+            .select("id, start_time, end_time")
+            .eq("parent_appointment_id", appointment.id);
+            
+          if (fetchError) throw fetchError;
+          
+          if (childAppointments && childAppointments.length > 0) {
+            // Calculate the time difference between old and new start time
+            const oldStartTime = new Date(appointment.start_time);
+            const timeDiff = startDate.getTime() - oldStartTime.getTime();
+            
+            // Update each child appointment with the same time difference
+            const childUpdates = childAppointments.map(child => {
+              const childStartTime = new Date(child.start_time);
+              const childEndTime = new Date(child.end_time);
+              
+              const newChildStartTime = new Date(childStartTime.getTime() + timeDiff);
+              const newChildEndTime = new Date(childEndTime.getTime() + timeDiff);
+              
+              return {
+                id: child.id,
+                start_time: newChildStartTime.toISOString(),
+                end_time: newChildEndTime.toISOString(),
+                notes: values.notes,
+                status: dbStatus,
+                payment_status: dbPaymentStatus,
+                final_price: totalPrice,
+              };
+            });
+            
+            // Update all child appointments in a single batch
+            for (const childUpdate of childUpdates) {
+              const { id, ...updateData } = childUpdate;
+              const { error: updateError } = await supabase
+                .from("appointments")
+                .update(updateData)
+                .eq("id", id);
+                
+              if (updateError) {
+                console.error(`Error updating child appointment ${id}:`, updateError);
+              }
+            }
+          }
+        }
+      } else {
         // Create new appointment
         const { data, error } = await supabase
           .from("appointments")
-          .insert(newAppointmentData)
+          .insert({
+            ...appointmentData,
+            is_parent: false, // New single appointments are not parents
+            parent_appointment_id: null,
+            recurrence: null,
+            recurrence_days: null,
+            recurrence_count: null,
+          })
           .select("id")
           .single();
           

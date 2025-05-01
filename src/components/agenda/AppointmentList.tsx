@@ -28,14 +28,19 @@ type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
     final_price: number;
     services: { name: string; duration: number };
   }> | null;
+  is_parent: boolean;
+  parent_appointment_id: string | null;
 };
 
 // Helper function to check if an appointment is part of a recurrence
-// Moved outside the component to be accessible by all components
 const isRecurringAppointment = (appointment: Appointment): boolean => {
-  return !!appointment.recurrence && 
+  // An appointment is recurring if:
+  // 1. It has recurrence settings and is a parent
+  // 2. Or it has a parent_appointment_id
+  return (!!appointment.recurrence && 
          appointment.recurrence !== 'none' && 
-         (appointment.recurrence_count || 0) > 1;
+         appointment.is_parent) ||
+         !!appointment.parent_appointment_id;
 };
 
 interface AppointmentListProps {
@@ -286,6 +291,8 @@ const AppointmentCard = ({ appointment, onClick, variant, showDate = false }: Ap
   
   // Check if this is a recurring appointment
   const isRecurring = isRecurringAppointment(appointment);
+  const isParent = appointment.is_parent;
+  const hasParent = !!appointment.parent_appointment_id;
 
   return (
     <div 
@@ -300,7 +307,7 @@ const AppointmentCard = ({ appointment, onClick, variant, showDate = false }: Ap
               {isRecurring && (
                 <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
                   <Repeat className="h-3 w-3 mr-1" />
-                  Recorrente
+                  {isParent ? "Principal" : "Recorrente"}
                 </span>
               )}
             </div>
@@ -356,6 +363,7 @@ const AppointmentCardCompact = ({ appointment, onClick }: { appointment: Appoint
   
   // Check if this is a recurring appointment
   const isRecurring = isRecurringAppointment(appointment);
+  const isParent = appointment.is_parent;
 
   // Determine a cor de borda baseada no status
   const statusBorderClass = {

@@ -35,6 +35,8 @@ type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
     services: { name: string; duration: number };
     final_price: number;
   }> | null;
+  is_parent?: boolean;
+  parent_appointment_id?: string | null;
 };
 
 interface AppointmentDetailsProps {
@@ -47,9 +49,13 @@ interface AppointmentDetailsProps {
 export const isRecurringAppointment = (appointment: Appointment | null): boolean => {
   if (!appointment) return false;
   
-  return !!appointment.recurrence && 
+  // An appointment is recurring if:
+  // 1. It has recurrence settings and is a parent
+  // 2. Or it has a parent_appointment_id
+  return (!!appointment.recurrence && 
          appointment.recurrence !== 'none' && 
-         (appointment.recurrence_count || 0) > 1;
+         (appointment.is_parent || false)) ||
+         !!appointment.parent_appointment_id;
 };
 
 const AppointmentDetails = ({ 
@@ -80,6 +86,8 @@ const AppointmentDetails = ({
   const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60); // in minutes
   
   const isRecurring = isRecurringAppointment(appointment);
+  const isParent = appointment.is_parent || false;
+  const hasParent = !!appointment.parent_appointment_id;
 
   const displayStatus = getDisplayStatus(appointment.status);
   const statusConfig = appointmentStatusMap[displayStatus];
@@ -125,7 +133,7 @@ const AppointmentDetails = ({
               {isRecurring && (
                 <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
                   <Repeat className="h-3 w-3 mr-1" />
-                  Recorrente
+                  {isParent ? "Recorrência Principal" : "Parte de Recorrência"}
                 </span>
               )}
             </div>
@@ -221,8 +229,8 @@ const AppointmentDetails = ({
                     <AlertDialogHeader>
                       <AlertDialogTitle>Excluir Agendamento Recorrente</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Este é um agendamento recorrente. Deseja excluir apenas este agendamento 
-                        ou todos os agendamentos desta série?
+                        Este é um agendamento {isParent ? "principal" : "parte"} de uma série recorrente. 
+                        Deseja excluir apenas este agendamento ou todos os agendamentos desta série?
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
