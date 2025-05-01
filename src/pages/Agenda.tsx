@@ -28,12 +28,29 @@ const Agenda = () => {
     }
   };
 
+  // Function to scroll to center of the screen with smooth scrolling
+  const scrollToCenter = () => {
+    const windowHeight = window.innerHeight;
+    const scrollToPosition = window.scrollY + (windowHeight / 2 - 300); // 300px is approximately half the modal height
+    
+    window.scrollTo({
+      top: scrollToPosition,
+      behavior: 'smooth'
+    });
+  };
+
+  // Handle opening the appointment wizard
+  const handleOpenWizard = () => {
+    scrollToCenter();
+    setIsAppointmentWizardOpen(true);
+  };
+
   return (
     <PageContainer>
       <PageHeader title={i18n.common.agenda} subtitle={getFormattedDate()}>
         <div className="flex items-center gap-2">
           <Button
-            onClick={() => setIsAppointmentWizardOpen(true)}
+            onClick={handleOpenWizard}
             className="flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
