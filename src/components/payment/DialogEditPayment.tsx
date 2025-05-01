@@ -142,8 +142,8 @@ export function DialogEditPayment({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] rounded-lg p-0 overflow-hidden">
-        <DialogHeader className="bg-gradient-to-r from-salon-primary/90 to-salon-primary p-5 rounded-t-lg">
+      <DialogContent className="sm:max-w-[500px] rounded-lg overflow-y-auto max-h-[85vh] p-0">
+        <DialogHeader className="bg-gradient-to-r from-salon-primary/90 to-salon-primary p-4 sm:p-5 rounded-t-lg sticky top-0 z-10">
           <DialogTitle className="text-white">Editar Pagamento</DialogTitle>
           <DialogDescription className="text-white/80">
             Cliente: {appointment.client?.name}
@@ -155,7 +155,7 @@ export function DialogEditPayment({
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-5">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4 sm:p-5">
             <FormField
               control={form.control}
               name="status"
@@ -198,7 +198,7 @@ export function DialogEditPayment({
                         <SelectValue placeholder="Selecione um status de pagamento" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="rounded-md border-salon-secondary/30">
+                    <SelectContent className="rounded-md border-salon-secondary/30 z-50">
                       <SelectItem value="não definido">Não definido</SelectItem>
                       <SelectItem value="pendente">Pendente</SelectItem>
                       <SelectItem value="pago">Pago</SelectItem>
