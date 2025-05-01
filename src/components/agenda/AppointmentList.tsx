@@ -30,6 +30,14 @@ type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
   }> | null;
 };
 
+// Helper function to check if an appointment is part of a recurrence
+// Moved outside the component to be accessible by all components
+const isRecurringAppointment = (appointment: Appointment): boolean => {
+  return !!appointment.recurrence && 
+         appointment.recurrence !== 'none' && 
+         (appointment.recurrence_count || 0) > 1;
+};
+
 interface AppointmentListProps {
   date: Date;
   view: "day" | "week" | "month";
@@ -98,13 +106,6 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Helper function to check if an appointment is part of a recurrence
-  const isRecurringAppointment = (appointment: Appointment): boolean => {
-    return !!appointment.recurrence && 
-           appointment.recurrence !== 'none' && 
-           (appointment.recurrence_count || 0) > 1;
   };
 
   // Renderização baseada na visualização selecionada
