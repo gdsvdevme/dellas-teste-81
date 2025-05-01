@@ -167,14 +167,14 @@ const AppointmentDetails = ({
   return (
     <>
       <Dialog open={open && !showEditModal} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md p-0 rounded-lg overflow-y-auto max-h-[85vh]">
+        <DialogContent className="sm:max-w-xl p-0 rounded-lg overflow-y-auto max-h-[85vh]">
           <DialogHeader className="bg-gradient-to-r from-salon-primary/90 to-salon-primary p-4 sm:p-5 rounded-t-lg sticky top-0 z-[55]">
             <DialogTitle className="text-white flex items-center gap-2">
               <span>Detalhes do Agendamento</span>
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4 p-4 sm:p-5">
+          <div className="space-y-4 p-4 sm:p-6">
             {/* Seção Cliente */}
             <Card className="shadow-sm">
               <CardContent className="p-4">
@@ -201,7 +201,7 @@ const AppointmentDetails = ({
                     {services.map((service, index) => (
                       <div key={index} className="flex justify-between items-center">
                         <span className="text-sm font-medium flex-1">{service.name}</span>
-                        <div className="flex items-center gap-1 w-24">
+                        <div className="flex items-center gap-1 w-28">
                           <span className="text-sm font-medium text-muted-foreground">R$</span>
                           <Input 
                             type="number" 
@@ -243,7 +243,7 @@ const AppointmentDetails = ({
             </Card>
           </div>
           
-          <DialogFooter className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0 flex-col sm:flex-row gap-3">
+          <DialogFooter className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 flex-col sm:flex-row gap-3">
             <div className="flex gap-2 w-full sm:w-auto order-3 sm:order-1">
               <Button
                 variant="outline"
