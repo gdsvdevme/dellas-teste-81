@@ -13,7 +13,7 @@ type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
   clients?: { name: string } | null;
   appointment_services?: Array<{
     service_id: string;
-    price: number;
+    final_price: number;
     services: { name: string; duration: number };
   }> | null;
 };
@@ -76,7 +76,7 @@ export const useAppointmentForm = ({
       // Create custom prices map from existing appointment services
       if (appointment.appointment_services) {
         appointment.appointment_services.forEach(service => {
-          customPrices[service.service_id] = service.price;
+          customPrices[service.service_id] = service.final_price;
         });
       }
       
@@ -231,7 +231,7 @@ export const useAppointmentForm = ({
           return {
             appointment_id: appointmentId!,
             service_id: serviceId,
-            price: customPrice !== undefined ? customPrice : defaultPrice,
+            final_price: customPrice !== undefined ? customPrice : defaultPrice,
           };
         });
         

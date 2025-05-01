@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -197,7 +196,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
           return {
             appointment_id: data.id,
             service_id: serviceId,
-            price: customPrice !== undefined ? customPrice : defaultPrice,
+            final_price: customPrice !== undefined ? customPrice : defaultPrice,
           };
         });
         

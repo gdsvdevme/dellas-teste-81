@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
@@ -27,12 +26,12 @@ import { useAppointmentForm } from "./modal/useAppointmentForm";
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 
-// Updated Appointment type with the price field in appointment_services
+// Updated Appointment type with final_price instead of price
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
   clients?: { name: string } | null;
   appointment_services?: Array<{
     service_id: string;
-    price: number;
+    final_price: number;
     services: { name: string; duration: number };
   }> | null;
 };
