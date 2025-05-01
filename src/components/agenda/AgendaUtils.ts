@@ -3,6 +3,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AppointmentStatus } from "./modal/AppointmentStatusSelect";
 import { PaymentStatus } from "./modal/AppointmentPaymentStatusSelect";
+import { Check, AlertTriangle, XCircle, Clock } from "lucide-react";
 
 // Formatar data e hora
 export const formatDateTime = (date: string | Date, formatStr: string = "PPp") => {
@@ -14,22 +15,32 @@ export const formatDateTime = (date: string | Date, formatStr: string = "PPp") =
 export const appointmentStatusMap: Record<string, {
   label: string;
   color: string;
+  icon: any;
+  badgeVariant: "default" | "success" | "warning" | "danger" | "info";
 }> = {
   agendado: {
     label: "Agendado",
     color: "bg-blue-50 border-blue-500 text-blue-700",
+    icon: Clock,
+    badgeVariant: "info",
   },
   cancelado: {
     label: "Cancelado",
     color: "bg-red-50 border-red-500 text-red-700",
+    icon: XCircle,
+    badgeVariant: "danger",
   },
   finalizado: {
     label: "Finalizado",
     color: "bg-green-50 border-green-500 text-green-700",
+    icon: Check,
+    badgeVariant: "success",
   },
   "pagamento pendente": {
     label: "Pagamento Pendente",
     color: "bg-yellow-50 border-yellow-500 text-yellow-700",
+    icon: AlertTriangle,
+    badgeVariant: "warning",
   },
 };
 
@@ -80,5 +91,25 @@ export const formatDuration = (minutes: number) => {
     return `${hours} hora${hours > 1 ? 's' : ''}`;
   } else {
     return `${hours} hora${hours > 1 ? 's' : ''} e ${mins} minutos`;
+  }
+};
+
+// Traduzir status do banco de dados para UI
+export const getDisplayStatus = (dbStatus: string) => {
+  switch (dbStatus) {
+    case "scheduled": return "agendado";
+    case "cancelled": return "cancelado";
+    case "completed": return "finalizado";
+    case "pending_payment": return "pagamento pendente";
+    default: return dbStatus;
+  }
+};
+
+// Traduzir status de pagamento do banco de dados para UI
+export const getDisplayPaymentStatus = (dbPaymentStatus: string) => {
+  switch (dbPaymentStatus) {
+    case "paid": return "pago";
+    case "pending": return "pendente";
+    default: return null;
   }
 };

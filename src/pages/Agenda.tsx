@@ -10,10 +10,11 @@ import PageHeader from "@/components/layout/PageHeader";
 import { i18n } from "@/lib/i18n";
 import AppointmentList from "@/components/agenda/AppointmentList";
 import AppointmentWizard from "@/components/agenda/AppointmentWizard";
+import { Card, CardContent } from "@/components/ui/card";
 
 const Agenda = () => {
   const [date, setDate] = useState<Date>(new Date());
-  const [view, setView] = useState<"day" | "week" | "month">("day");
+  const [view, setView] = useState<"day" | "week" | "month">("week");
   const [isAppointmentWizardOpen, setIsAppointmentWizardOpen] = useState(false);
 
   // Format the date according to the current view
@@ -43,57 +44,65 @@ const Agenda = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Calendário lateral */}
-        <div className="md:col-span-1 bg-white p-4 rounded-lg shadow">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-medium">Calendário</h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDate(new Date())}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" /> Hoje
-            </Button>
-          </div>
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={(date) => date && setDate(date)}
-            className="p-3 rounded-md border"
-            locale={ptBR}
-          />
-          
-          {/* Botões de visualização */}
-          <div className="mt-4 flex items-center gap-2">
-            <Button 
-              variant={view === "day" ? "default" : "outline"} 
-              size="sm"
-              onClick={() => setView("day")}
-            >
-              Diário
-            </Button>
-            <Button 
-              variant={view === "week" ? "default" : "outline"} 
-              size="sm"
-              onClick={() => setView("week")}
-            >
-              Semanal
-            </Button>
-            <Button 
-              variant={view === "month" ? "default" : "outline"} 
-              size="sm"
-              onClick={() => setView("month")}
-            >
-              Mensal
-            </Button>
-          </div>
+        <div className="md:col-span-1">
+          <Card>
+            <CardContent className="p-4">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-medium">Calendário</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDate(new Date())}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" /> Hoje
+                </Button>
+              </div>
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={(date) => date && setDate(date)}
+                className="p-3 rounded-md border"
+                locale={ptBR}
+              />
+              
+              {/* Botões de visualização */}
+              <div className="mt-4 flex items-center gap-2">
+                <Button 
+                  variant={view === "day" ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => setView("day")}
+                >
+                  Diário
+                </Button>
+                <Button 
+                  variant={view === "week" ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => setView("week")}
+                >
+                  Semanal
+                </Button>
+                <Button 
+                  variant={view === "month" ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => setView("month")}
+                >
+                  Mensal
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Lista de Agendamentos */}
-        <div className="md:col-span-2 bg-white p-4 rounded-lg shadow">
-          <AppointmentList 
-            date={date} 
-            view={view}
-          />
+        <div className="md:col-span-2">
+          <Card>
+            <CardContent className="p-4">
+              <AppointmentList 
+                date={date} 
+                view={view}
+              />
+            </CardContent>
+          </Card>
         </div>
       </div>
 

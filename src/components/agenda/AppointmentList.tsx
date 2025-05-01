@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { 
   format, 
@@ -15,9 +16,12 @@ import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
-import { Clock, Edit, Trash } from "lucide-react";
+import { Edit, Trash } from "lucide-react";
 import AppointmentModal from "./AppointmentModal";
 import { useToast } from "@/hooks/use-toast";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { appointmentStatusMap, getDisplayStatus } from "./AgendaUtils";
+import AppointmentDetails from "./AppointmentDetails";
 
 // Updated Appointment type to use final_price instead of price
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
@@ -38,6 +42,7 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [editAppointment, setEditAppointment] = useState<Appointment | null>(null);
+  const [detailsAppointment, setDetailsAppointment] = useState<Appointment | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -132,6 +137,14 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
       end: new Date(date.setHours(18, 0, 0, 0)),
     });
 
+    // Filter hours that have appointments
+    const hoursWithAppointments = hours.filter(hour => {
+      return appointments.some(apt => {
+        const aptDate = new Date(apt.start_time);
+        return aptDate.getHours() === hour.getHours();
+      });
+    });
+
     return (
       <div>
         <h2 className="text-xl font-bold mb-4">Agendamentos do Dia</h2>
@@ -141,47 +154,48 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div className="space-y-1">
-            {hours.map((hour) => {
-              const hourAppointments = appointments.filter((apt) => {
-                const aptDate = new Date(apt.start_time);
-                return aptDate.getHours() === hour.getHours();
-              });
+          <>
+            {hoursWithAppointments.length > 0 ? (
+              <div className="space-y-1">
+                {hoursWithAppointments.map((hour) => {
+                  const hourAppointments = appointments.filter((apt) => {
+                    const aptDate = new Date(apt.start_time);
+                    return aptDate.getHours() === hour.getHours();
+                  });
 
-              return (
-                <div key={hour.toString()} className="border-t py-2">
-                  <div className="flex items-center text-sm text-gray-500 mb-1">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {format(hour, "HH:mm")}
-                  </div>
-                  
-                  {hourAppointments.length > 0 ? (
-                    hourAppointments.map((appointment) => (
-                      <AppointmentCard
-                        key={appointment.id}
-                        appointment={appointment}
-                        onEdit={() => setEditAppointment(appointment)}
-                        onDelete={() => handleDelete(appointment.id)}
-                      />
-                    ))
-                  ) : (
-                    <div className="h-12 px-3 py-2 text-sm text-gray-400 italic border-l-2 border-transparent">
-                      Sem agendamentos
+                  return (
+                    <div key={hour.toString()} className="border-t py-2">
+                      <div className="flex items-center text-sm text-gray-500 mb-1">
+                        {format(hour, "HH:mm")}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {hourAppointments.map((appointment) => (
+                          <AppointmentCard
+                            key={appointment.id}
+                            appointment={appointment}
+                            onClick={() => setDetailsAppointment(appointment)}
+                            variant="day"
+                          />
+                        ))}
+                      </div>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-gray-500">
+                Nenhum agendamento encontrado neste dia
+              </div>
+            )}
+          </>
         )}
 
-        {/* Modal de edição */}
-        <AppointmentModal
-          open={!!editAppointment}
-          onOpenChange={() => setEditAppointment(null)}
-          appointment={editAppointment}
+        <AppointmentDetails
+          open={!!detailsAppointment}
+          onOpenChange={() => setDetailsAppointment(null)}
+          appointment={detailsAppointment}
           onSuccess={fetchAppointments}
-          selectedDate={date}
         />
       </div>
     );
@@ -200,41 +214,48 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-7 gap-2">
-            {days.map((day) => (
-              <div key={day.toString()} className="border rounded-md p-2">
-                <div className="text-center font-medium mb-2">
-                  <div>{format(day, "EEE", { locale: ptBR })}</div>
-                  <div>{format(day, "dd", { locale: ptBR })}</div>
-                </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-2">
+            {days.map((day) => {
+              const dayAppointments = appointments.filter((apt) => 
+                isSameDay(new Date(apt.start_time), day)
+              );
+              
+              return (
+                <div key={day.toString()} className="border rounded-md p-2 bg-white">
+                  <div className="text-center font-medium mb-2 sticky top-0 bg-white pb-1 border-b">
+                    <div className="text-xs uppercase tracking-wide text-gray-500">
+                      {format(day, "EEE", { locale: ptBR })}
+                    </div>
+                    <div className="text-lg">{format(day, "dd", { locale: ptBR })}</div>
+                  </div>
 
-                <div className="space-y-1">
-                  {appointments
-                    .filter((apt) => isSameDay(new Date(apt.start_time), day))
-                    .map((appointment) => (
-                      <div 
-                        key={appointment.id} 
-                        className="text-xs p-1 bg-primary-foreground border rounded mb-1"
-                      >
-                        <div className="font-medium">
-                          {format(new Date(appointment.start_time), "HH:mm")}
-                        </div>
-                        <div>{appointment.clients?.name}</div>
+                  <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                    {dayAppointments.length > 0 ? (
+                      dayAppointments.map((appointment) => (
+                        <AppointmentCard
+                          key={appointment.id}
+                          appointment={appointment}
+                          onClick={() => setDetailsAppointment(appointment)}
+                          variant="week"
+                        />
+                      ))
+                    ) : (
+                      <div className="text-xs text-gray-400 text-center py-2">
+                        Sem agendamentos
                       </div>
-                    ))}
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
-        {/* Modal de edição */}
-        <AppointmentModal
-          open={!!editAppointment}
-          onOpenChange={() => setEditAppointment(null)}
-          appointment={editAppointment}
+        <AppointmentDetails
+          open={!!detailsAppointment}
+          onOpenChange={() => setDetailsAppointment(null)}
+          appointment={detailsAppointment}
           onSuccess={fetchAppointments}
-          selectedDate={date}
         />
       </div>
     );
@@ -256,8 +277,8 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
               <AppointmentCard
                 key={appointment.id}
                 appointment={appointment}
-                onEdit={() => setEditAppointment(appointment)}
-                onDelete={() => handleDelete(appointment.id)}
+                onClick={() => setDetailsAppointment(appointment)}
+                variant="month"
                 showDate
               />
             ))
@@ -269,13 +290,11 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
         </div>
       )}
 
-      {/* Modal de edição */}
-      <AppointmentModal
-        open={!!editAppointment}
-        onOpenChange={() => setEditAppointment(null)}
-        appointment={editAppointment}
+      <AppointmentDetails
+        open={!!detailsAppointment}
+        onOpenChange={() => setDetailsAppointment(null)}
+        appointment={detailsAppointment}
         onSuccess={fetchAppointments}
-        selectedDate={date}
       />
     </div>
   );
@@ -284,44 +303,30 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
 // Componente de cartão de agendamento
 interface AppointmentCardProps {
   appointment: Appointment;
-  onEdit: () => void;
-  onDelete: () => void;
+  onClick: () => void;
+  variant: "day" | "week" | "month";
   showDate?: boolean;
 }
 
-const AppointmentCard = ({ appointment, onEdit, onDelete, showDate = false }: AppointmentCardProps) => {
+const AppointmentCard = ({ appointment, onClick, variant, showDate = false }: AppointmentCardProps) => {
   const startTime = new Date(appointment.start_time);
-  const endTime = new Date(appointment.end_time);
   
-  const getStatusColor = () => {
-    // Map database status to UI color
-    switch (appointment.status) {
-      case "scheduled":
-        return "border-blue-500 bg-blue-50";
-      case "completed":
-        return "border-green-500 bg-green-50";
-      case "cancelled":
-        return "border-red-500 bg-red-50";
-      default:
-        return "border-gray-300";
-    }
-  };
-
-  // Translate status for display
-  const getDisplayStatus = (dbStatus: string) => {
-    switch (dbStatus) {
-      case "scheduled": return "Agendado";
-      case "cancelled": return "Cancelado";
-      case "completed": return "Finalizado";
-      default: return dbStatus;
-    }
-  };
+  // Get proper status with translation from DB values
+  const displayStatus = getDisplayStatus(appointment.status);
+  const statusConfig = appointmentStatusMap[displayStatus];
+  const StatusIcon = statusConfig?.icon;
 
   return (
-    <div className={`mb-2 p-3 border-l-4 rounded-md shadow-sm ${getStatusColor()}`}>
-      <div className="flex justify-between">
-        <div>
-          <p className="font-medium">{appointment.clients?.name}</p>
+    <div 
+      className={`p-2 rounded-md shadow-sm cursor-pointer hover:bg-gray-50 transition-colors ${statusConfig?.color || ""}`}
+      onClick={onClick}
+    >
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          {variant !== "week" && (
+            <div className="font-medium mb-0.5 line-clamp-1">{appointment.clients?.name}</div>
+          )}
+          
           <div className="text-sm text-gray-600">
             {showDate && (
               <span className="mr-2">
@@ -329,28 +334,31 @@ const AppointmentCard = ({ appointment, onEdit, onDelete, showDate = false }: Ap
               </span>
             )}
             <span>
-              {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
+              {format(startTime, "HH:mm")}
             </span>
           </div>
-          <div className="text-xs text-gray-500 mt-1">
-            {appointment.appointment_services?.map((as) => as.services.name).join(", ")}
+          
+          {variant === "week" && (
+            <div className="text-sm font-medium line-clamp-1 mt-1">
+              {appointment.clients?.name}
+            </div>
+          )}
+          
+          {variant === "day" && appointment.appointment_services && appointment.appointment_services.length > 0 && (
+            <div className="text-xs text-gray-500 mt-1 line-clamp-1">
+              {appointment.appointment_services.map(as => as.services.name).join(", ")}
+            </div>
+          )}
+          
+          <div className="mt-1">
+            <StatusBadge 
+              variant={statusConfig?.badgeVariant || "default"} 
+              className="flex items-center gap-1 text-xs"
+            >
+              {StatusIcon && <StatusIcon className="h-3 w-3" />}
+              <span className="line-clamp-1">{statusConfig?.label}</span>
+            </StatusBadge>
           </div>
-          <div className="text-xs font-medium mt-1">
-            Status: {getDisplayStatus(appointment.status)}
-            {appointment.payment_status && (
-              <span className="ml-2">
-                Pagamento: {appointment.payment_status === "paid" ? "Pago" : "Pendente"}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="flex space-x-1">
-          <Button size="sm" variant="ghost" onClick={onEdit}>
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="ghost" onClick={onDelete}>
-            <Trash className="h-4 w-4" />
-          </Button>
         </div>
       </div>
     </div>

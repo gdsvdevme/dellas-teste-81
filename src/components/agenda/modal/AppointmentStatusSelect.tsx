@@ -1,6 +1,7 @@
 
 import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { i18n } from "@/lib/i18n";
+import { appointmentStatusMap } from "../AgendaUtils";
 
 export const allowedAppointmentStatus = [
   "agendado", 
@@ -42,18 +43,11 @@ const AppointmentStatusSelect = ({ form }: AppointmentStatusSelectProps) => {
                 }
               }}
             >
-              <option value="agendado">
-                {i18n.appointmentStatus.scheduled}
-              </option>
-              <option value="cancelado">
-                {i18n.appointmentStatus.cancelled}
-              </option>
-              <option value="finalizado">
-                {i18n.appointmentStatus.completed}
-              </option>
-              <option value="pagamento pendente">
-                {i18n.appointmentStatus.pendingPayment}
-              </option>
+              {allowedAppointmentStatus.map((status) => (
+                <option key={status} value={status}>
+                  {appointmentStatusMap[status]?.label || status}
+                </option>
+              ))}
             </select>
           </FormControl>
         </FormItem>
