@@ -1,12 +1,15 @@
 
-import { useState, useCallback } from "react";
-import { formatDateTime, appointmentStatusMap, getDisplayStatus } from "./AgendaUtils";
-import { 
+import { useState } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Clock, Calendar as CalendarIcon, Trash2, Pencil, Repeat } from "lucide-react";
+import { Database } from "@/integrations/supabase/types";
+import { Button } from "@/components/ui/button";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -16,37 +19,18 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Edit, Trash, Check, X, ChevronDown, Repeat } from "lucide-react";
-import { Database } from "@/integrations/supabase/types";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { appointmentStatusMap, getDisplayStatus } from "./AgendaUtils";
 import AppointmentModal from "./AppointmentModal";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { useAppointmentDelete } from "./hooks/useAppointmentDelete";
+import { Progress } from "@/components/ui/progress";
 
-export type AppointmentDetailsType = {
-  id: string;
-  start_time: string;
-  client_name: string;
-  services: string[];
-  status: string;
-};
-
-type AppointmentWithRelations = Database["public"]["Tables"]["appointments"]["Row"] & {
-  clients: { name: string } | null;
-  appointment_services: Array<{
+type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
+  clients?: { name: string } | null;
+  appointment_services?: Array<{
     service_id: string;
     services: { name: string; duration: number };
     final_price: number;
@@ -56,9 +40,17 @@ type AppointmentWithRelations = Database["public"]["Tables"]["appointments"]["Ro
 interface AppointmentDetailsProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  appointment: AppointmentWithRelations | null;
+  appointment: Appointment | null;
   onSuccess?: () => void;
 }
+
+export const isRecurringAppointment = (appointment: Appointment | null): boolean => {
+  if (!appointment) return false;
+  
+  return !!appointment.recurrence && 
+         appointment.recurrence !== 'none' && 
+         (appointment.recurrence_count || 0) > 1;
+};
 
 const AppointmentDetails = ({ 
   open, 
@@ -66,345 +58,242 @@ const AppointmentDetails = ({
   appointment, 
   onSuccess 
 }: AppointmentDetailsProps) => {
-  const { toast } = useToast();
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRecurrenceDeleteDialogOpen, setIsRecurrenceDeleteDialogOpen] = useState(false);
   
-  // Estado para controlar os valores de serviços
-  const [serviceValues, setServiceValues] = useState<Record<string, number>>({});
-
-  // Use our new custom hook for deletion logic
   const { 
-    deleteSingleAppointment,
-    deleteAllRecurringAppointments, 
-    isDeleting 
+    isDeleting, 
+    progress, 
+    deleteSingleAppointment, 
+    deleteAllRecurringAppointments 
   } = useAppointmentDelete({
     onSuccess: () => {
-      toast({
-        title: "Sucesso",
-        description: "Agendamento(s) excluído(s) com sucesso",
-      });
       onOpenChange(false);
       if (onSuccess) onSuccess();
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro",
-        description: `Falha ao excluir agendamento: ${error.message}`,
-        variant: "destructive",
-      });
     }
   });
 
   if (!appointment) return null;
 
-  // Check if this is a recurring appointment
-  const isRecurring = !!appointment.recurrence && 
-                      appointment.recurrence !== 'none' && 
-                      (appointment.recurrence_count || 0) > 1;
+  const startTime = new Date(appointment.start_time);
+  const endTime = new Date(appointment.end_time);
+  const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60); // in minutes
+  
+  const isRecurring = isRecurringAppointment(appointment);
 
   const displayStatus = getDisplayStatus(appointment.status);
   const statusConfig = appointmentStatusMap[displayStatus];
   const StatusIcon = statusConfig?.icon;
   
-  const services = appointment.appointment_services?.map(s => ({
-    id: s.service_id,
-    name: s.services.name,
-    price: s.final_price
-  })) || [];
-  
-  // Inicializar os valores de serviço a partir do appointment
-  if (Object.keys(serviceValues).length === 0 && services.length > 0) {
-    const initialValues: Record<string, number> = {};
-    services.forEach(service => {
-      initialValues[service.id] = service.price;
-    });
-    setServiceValues(initialValues);
+  // Format payment status
+  let paymentStatus = "Não definido";
+  if (appointment.payment_status === "paid") {
+    paymentStatus = "Pago";
+  } else if (appointment.payment_status === "pending") {
+    paymentStatus = "Pendente";
   }
   
-  // Calcular o valor total dos serviços
-  const calculateTotal = () => {
-    return Object.values(serviceValues).reduce((sum, price) => sum + price, 0);
-  };
+  // Get services
+  const services = appointment.appointment_services?.map(as => ({
+    name: as.services.name,
+    price: as.final_price,
+    duration: as.services.duration
+  })) || [];
   
-  const handleUpdateStatus = async (newStatus: string, newPaymentStatus: string) => {
-    setIsUpdating(true);
-    try {
-      // Atualizar o status do agendamento
-      const { error } = await supabase
-        .from("appointments")
-        .update({
-          status: newStatus,
-          payment_status: newPaymentStatus === "não definido" ? null : newPaymentStatus,
-          // Atualizar também o preço final quando o status for atualizado
-          final_price: calculateTotal()
-        })
-        .eq("id", appointment.id);
-
-      if (error) throw error;
-
-      // Atualizar os preços dos serviços
-      if (Object.keys(serviceValues).length > 0) {
-        for (const serviceId of Object.keys(serviceValues)) {
-          const { error: serviceError } = await supabase
-            .from("appointment_services")
-            .update({ final_price: serviceValues[serviceId] })
-            .eq("appointment_id", appointment.id)
-            .eq("service_id", serviceId);
-            
-          if (serviceError) throw serviceError;
-        }
-      }
-
-      toast({
-        title: "Sucesso",
-        description: "Status atualizado com sucesso",
-      });
-      if (onSuccess) onSuccess();
-      onOpenChange(false);
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: `Falha ao atualizar status: ${error.message}`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  // Main function to handle deletion with improved error handling
-  const handleDelete = async (deleteAll: boolean = false) => {
-    try {
-      if (isRecurring && deleteAll) {
-        // Delete all recurring appointments in the series
-        await deleteAllRecurringAppointments(appointment);
-      } else {
-        // Delete just this appointment
-        await deleteSingleAppointment(appointment.id);
-      }
-    } finally {
-      // Always hide the confirmation dialog regardless of success/failure
-      setShowDeleteConfirm(false);
-    }
-  };
+  // Calculate total price
+  const totalPrice = services.reduce((total, service) => total + service.price, 0);
 
   return (
     <>
-      <Dialog open={open && !showEditModal} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-3xl p-0 rounded-lg overflow-y-auto max-h-[85vh]">
-          <DialogHeader className="bg-gradient-to-r from-salon-primary/90 to-salon-primary p-4 sm:p-5 rounded-t-lg sticky top-0 z-[55]">
-            <DialogTitle className="text-white flex items-center gap-2">
-              <span>Detalhes do Agendamento</span>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Agendamento</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
+            {/* Status */}
+            <div className="flex justify-between items-center">
+              <StatusBadge 
+                variant={statusConfig?.badgeVariant || "default"}
+                className="flex items-center gap-1.5"
+              >
+                {StatusIcon && <StatusIcon className="h-4 w-4" />}
+                {statusConfig?.label}
+              </StatusBadge>
+              
               {isRecurring && (
-                <span className="flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
+                <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
                   <Repeat className="h-3 w-3 mr-1" />
                   Recorrente
                 </span>
               )}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 p-4 sm:p-6">
-            {/* Seção Cliente e Data em grid responsivo */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Seção Cliente */}
-              <Card className="shadow-sm">
-                <CardContent className="p-4">
-                  <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-1">CLIENTE</h3>
-                  <p className="text-lg font-medium">{appointment.clients?.name || "Cliente não especificado"}</p>
-                </CardContent>
-              </Card>
-              
-              {/* Seção Data e Hora */}
-              <Card className="shadow-sm">
-                <CardContent className="p-4">
-                  <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-1">DATA E HORA</h3>
-                  <p className="font-medium">{formatDateTime(appointment.start_time, "PPP")}</p>
-                  <p>{formatDateTime(appointment.start_time, "HH:mm")}</p>
-                </CardContent>
-              </Card>
             </div>
             
-            {/* Seção Serviços */}
-            <Card className="shadow-sm">
-              <CardContent className="p-4">
-                <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-1">SERVIÇOS</h3>
-                {services.length > 0 ? (
-                  <div className="space-y-3 mt-2">
-                    {services.map((service, index) => (
-                      <div key={index} className="flex justify-between items-center">
-                        <span className="text-sm font-medium flex-1">{service.name}</span>
-                        <div className="flex items-center gap-1 w-40">
-                          <span className="text-sm font-medium text-muted-foreground">R$</span>
-                          <Input 
-                            type="number" 
-                            className="w-full text-right h-8 text-sm"
-                            value={serviceValues[service.id] || service.price}
-                            onChange={(e) => {
-                              const newValue = parseFloat(e.target.value) || 0;
-                              setServiceValues({...serviceValues, [service.id]: newValue});
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                    <div className="pt-3 mt-2 border-t flex justify-between font-semibold">
-                      <span>Total</span>
-                      <span>R$ {calculateTotal().toFixed(2)}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-500 italic">Nenhum serviço selecionado</p>
-                )}
-              </CardContent>
-            </Card>
+            {/* Client */}
+            <div>
+              <h3 className="text-lg font-medium">{appointment.clients?.name}</h3>
+            </div>
             
-            {/* Seção Status */}
-            <Card className="shadow-sm">
-              <CardContent className="p-4">
-                <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-1">STATUS</h3>
-                <div className="flex items-center mt-1">
-                  <StatusBadge 
-                    variant={statusConfig?.badgeVariant || "default"} 
-                    className="flex items-center gap-1 py-1 px-3 text-sm"
-                  >
-                    {StatusIcon && <StatusIcon className="h-3.5 w-3.5" />}
-                    {statusConfig?.label || displayStatus}
-                  </StatusBadge>
+            {/* Date and time */}
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <CalendarIcon className="h-4 w-4" />
+              <span>{format(startTime, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</span>
+            </div>
+            
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Clock className="h-4 w-4" />
+              <span>
+                {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")} ({duration} min)
+              </span>
+            </div>
+            
+            {/* Services */}
+            <div className="pt-3">
+              <h4 className="text-sm font-medium mb-2">Serviços:</h4>
+              <ul className="space-y-2">
+                {services.map((service, index) => (
+                  <li key={index} className="flex justify-between text-sm">
+                    <span>{service.name} ({service.duration} min)</span>
+                    <span className="font-medium">R$ {service.price.toFixed(2)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            {/* Total */}
+            <div className="pt-2 border-t">
+              <div className="flex justify-between font-medium">
+                <span>Total:</span>
+                <span>R$ {totalPrice.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-500 mt-1">
+                <span>Pagamento:</span>
+                <span>{paymentStatus}</span>
+              </div>
+            </div>
+            
+            {/* Notes */}
+            {appointment.notes && (
+              <div className="pt-3">
+                <h4 className="text-sm font-medium mb-1">Observações:</h4>
+                <p className="text-sm text-gray-600 whitespace-pre-line">{appointment.notes}</p>
+              </div>
+            )}
+
+            {/* Progress bar for deletion process */}
+            {isDeleting && (
+              <div className="pt-2">
+                <div className="text-sm text-gray-500 mb-2">
+                  {progress < 100 ? 'Excluindo agendamento...' : 'Concluído!'}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <DialogFooter className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 flex-col sm:flex-row gap-3">
-            <div className="flex gap-2 w-full sm:w-auto order-3 sm:order-1">
+                <Progress value={progress} className="h-2" />
+              </div>
+            )}
+            
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-4">
               <Button
                 variant="outline"
-                onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
-                disabled={isDeleting || isUpdating}
+                size="sm"
+                className="gap-1"
+                onClick={() => setIsModalOpen(true)}
+                disabled={isDeleting}
               >
-                Fechar
-              </Button>
-            </div>
-            
-            <div className="flex gap-2 w-full sm:w-auto order-2 sm:order-2">
-              <Button 
-                variant="destructive" 
-                className="flex items-center gap-1 w-full sm:w-auto"
-                onClick={() => handleUpdateStatus("cancelado", "não definido")}
-                disabled={isUpdating || isDeleting}
-              >
-                <X className="h-4 w-4" />
-                Cancelar
-              </Button>
-            </div>
-            
-            <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-3">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="default"
-                    className="flex items-center justify-between gap-2 w-full sm:w-auto"
-                    disabled={isUpdating || isDeleting}
-                  >
-                    <span className="flex items-center gap-1">
-                      <Check className="h-4 w-4" />
-                      Concluir
-                    </span>
-                    <ChevronDown className="h-4 w-4 ml-1 opacity-70" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40 z-[85] bg-popover">
-                  <DropdownMenuItem 
-                    className="cursor-pointer flex items-center gap-2" 
-                    onClick={() => handleUpdateStatus("finalizado", "pago")}
-                  >
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span>Pago</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="cursor-pointer flex items-center gap-2" 
-                    onClick={() => handleUpdateStatus("pagamento pendente", "pendente")}
-                  >
-                    <ChevronDown className="h-4 w-4 text-yellow-600" />
-                    <span>Não pago</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-1 w-full sm:w-auto"
-                onClick={() => setShowEditModal(true)}
-                disabled={isDeleting || isUpdating}
-              >
-                <Edit className="h-4 w-4" />
+                <Pencil className="h-4 w-4" />
                 Editar
               </Button>
               
-              <Button 
-                variant="outline"
-                className="flex items-center gap-1 text-destructive w-full sm:w-auto"
-                onClick={() => isRecurring ? setShowDeleteConfirm(true) : handleDelete(false)}
-                disabled={isDeleting || isUpdating}
-              >
-                <Trash className="h-4 w-4" />
-                {isDeleting ? "Excluindo..." : "Excluir"}
-              </Button>
+              {isRecurring ? (
+                <AlertDialog open={isRecurrenceDeleteDialogOpen} onOpenChange={setIsRecurrenceDeleteDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="gap-1"
+                      disabled={isDeleting}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir Agendamento Recorrente</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Este é um agendamento recorrente. Deseja excluir apenas este agendamento 
+                        ou todos os agendamentos desta série?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                      <Button
+                        variant="outline"
+                        onClick={async () => {
+                          await deleteSingleAppointment(appointment.id);
+                          setIsRecurrenceDeleteDialogOpen(false);
+                        }}
+                        disabled={isDeleting}
+                      >
+                        Excluir apenas este
+                      </Button>
+                      <AlertDialogAction 
+                        onClick={async () => {
+                          await deleteAllRecurringAppointments(appointment);
+                          setIsRecurrenceDeleteDialogOpen(false);
+                        }}
+                        disabled={isDeleting}
+                      >
+                        Excluir todos
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="gap-1"
+                      disabled={isDeleting}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir Agendamento</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja excluir este agendamento?
+                        Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => deleteSingleAppointment(appointment.id)}
+                        disabled={isDeleting}
+                      >
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
-
-      {/* Alert Dialog for confirming deletion of recurring appointments */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir agendamento recorrente</AlertDialogTitle>
-            <AlertDialogDescription>
-              Este é um agendamento recorrente. Deseja excluir apenas este agendamento ou todos os agendamentos desta série?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => handleDelete(false)}
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Excluindo..." : "Apenas este"}
-            </AlertDialogAction>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => handleDelete(true)}
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Excluindo..." : "Todos os agendamentos"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {appointment && (
-        <AppointmentModal
-          open={showEditModal}
-          onOpenChange={(open) => {
-            setShowEditModal(open);
-            if (!open && !onOpenChange) {
-              onOpenChange(true); // Reopen details modal when edit modal closes
-            }
-          }}
-          appointment={appointment}
-          onSuccess={() => {
-            if (onSuccess) onSuccess();
-            setShowEditModal(false);
-            onOpenChange(false);
-          }}
-        />
-      )}
+      
+      {/* Edit modal */}
+      <AppointmentModal 
+        open={isModalOpen} 
+        onOpenChange={setIsModalOpen} 
+        appointment={appointment}
+        onSuccess={onSuccess}
+      />
     </>
   );
 };

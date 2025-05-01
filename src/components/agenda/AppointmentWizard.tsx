@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -171,6 +172,9 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
       const dbStatus = mapFormStatusToDatabase(formValues.status);
       const dbPaymentStatus = mapFormPaymentStatusToDatabase(formValues.paymentStatus);
       
+      // Generate a recurrence group ID for recurring appointments
+      const recurrenceGroupId = formValues.recurrence !== "none" ? crypto.randomUUID() : null;
+
       // Prepare appointment data
       const appointmentData = {
         client_id: formValues.clientId,
@@ -183,6 +187,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
         recurrence: formValues.recurrence === "none" ? null : formValues.recurrence,
         recurrence_days: formValues.recurrenceDays.length > 0 ? formValues.recurrenceDays : null,
         recurrence_count: formValues.recurrenceCount || 1,
+        recurrence_group_id: recurrenceGroupId,
       };
       
       // Create appointment
@@ -214,7 +219,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
         if (servicesError) throw servicesError;
       }
       
-      // NOVA FUNCIONALIDADE: Criar agendamentos recorrentes
+      // Criar agendamentos recorrentes
       if (formValues.recurrence !== "none" && formValues.recurrence !== null && 
           formValues.recurrenceDays.length > 0 && formValues.recurrenceCount > 1) {
         
@@ -240,7 +245,9 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
               status: dbStatus,
               payment_status: dbPaymentStatus,
               final_price: totalPrice,
-              // Setamos estes como null para evitar que o sistema crie agendamentos recorrentes infinitamente
+              // Use the same recurrence_group_id for all recurring appointments
+              recurrence_group_id: recurrenceGroupId,
+              // Set these as null to avoid creating nested recurrences
               recurrence: null,
               recurrence_days: null,
               recurrence_count: null,
@@ -265,7 +272,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
             const { data: createdRecurrenceData } = await supabase
               .from("appointments")
               .select("id")
-              .in('notes', futureAppointments.map(a => a.notes))
+              .eq("recurrence_group_id", recurrenceGroupId)
               .order('created_at', { ascending: false })
               .limit(futureDates.length);
               

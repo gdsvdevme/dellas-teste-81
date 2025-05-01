@@ -48,13 +48,13 @@ const Agenda = () => {
     setIsAppointmentWizardOpen(true);
   };
 
-  // Handle success after appointment creation
+  // Handle success after appointment creation or deletion
   const handleAppointmentSuccess = () => {
     // Atualiza a lista forçando um novo render
     setRefreshKey(prev => prev + 1);
     
     toast({
-      title: "Agendamento salvo",
+      title: "Operação concluída",
       description: "A agenda foi atualizada com sucesso!",
     });
   };

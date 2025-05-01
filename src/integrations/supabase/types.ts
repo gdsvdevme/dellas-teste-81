@@ -59,6 +59,7 @@ export type Database = {
           recurrence: string | null
           recurrence_count: number | null
           recurrence_days: string[] | null
+          recurrence_group_id: string | null
           start_time: string
           status: string
         }
@@ -75,6 +76,7 @@ export type Database = {
           recurrence?: string | null
           recurrence_count?: number | null
           recurrence_days?: string[] | null
+          recurrence_group_id?: string | null
           start_time: string
           status?: string
         }
@@ -91,6 +93,7 @@ export type Database = {
           recurrence?: string | null
           recurrence_count?: number | null
           recurrence_days?: string[] | null
+          recurrence_group_id?: string | null
           start_time?: string
           status?: string
         }

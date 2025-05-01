@@ -179,7 +179,7 @@ export const useAppointmentForm = ({
       switch(values.paymentStatus) {
         case "pago": dbPaymentStatus = "paid"; break;
         case "pendente": dbPaymentStatus = "pending"; break;
-        case "não definido": dbPaymentStatus = "undefined"; break; // Use "undefined" string instead of null
+        case "não definido": dbPaymentStatus = "undefined"; break;
         default: dbPaymentStatus = "undefined";
       }
       
@@ -216,10 +216,20 @@ export const useAppointmentForm = ({
           
         if (deleteError) throw deleteError;
       } else {
+        // Get or generate a recurrence_group_id
+        const recurrenceGroupId = values.recurrence !== "none" && values.recurrence !== null ? 
+          crypto.randomUUID() : null;
+          
+        // Add recurrence_group_id to the data
+        const newAppointmentData = { 
+          ...appointmentData,
+          recurrence_group_id: recurrenceGroupId
+        };
+        
         // Create new appointment
         const { data, error } = await supabase
           .from("appointments")
-          .insert(appointmentData)
+          .insert(newAppointmentData)
           .select("id")
           .single();
           
