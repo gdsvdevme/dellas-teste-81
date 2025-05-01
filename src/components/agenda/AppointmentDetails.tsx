@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { formatDateTime, appointmentStatusMap, getDisplayStatus } from "./AgendaUtils";
 import { 
   Dialog,
@@ -34,6 +34,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useAppointmentDelete } from "./hooks/useAppointmentDelete";
 
 export type AppointmentDetailsType = {
   id: string;
@@ -66,13 +67,35 @@ const AppointmentDetails = ({
   onSuccess 
 }: AppointmentDetailsProps) => {
   const { toast } = useToast();
-  const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   // Estado para controlar os valores de serviços
   const [serviceValues, setServiceValues] = useState<Record<string, number>>({});
+
+  // Use our new custom hook for deletion logic
+  const { 
+    deleteSingleAppointment,
+    deleteAllRecurringAppointments, 
+    isDeleting 
+  } = useAppointmentDelete({
+    onSuccess: () => {
+      toast({
+        title: "Sucesso",
+        description: "Agendamento(s) excluído(s) com sucesso",
+      });
+      onOpenChange(false);
+      if (onSuccess) onSuccess();
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Falha ao excluir agendamento: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
 
   if (!appointment) return null;
 
@@ -151,101 +174,18 @@ const AppointmentDetails = ({
     }
   };
 
-  // Função otimizada para excluir um único agendamento
-  const deleteSingleAppointment = async () => {
-    try {
-      const { error } = await supabase
-        .from("appointments")
-        .delete()
-        .eq("id", appointment.id);
-
-      if (error) throw error;
-      
-      return true;
-    } catch (error) {
-      console.error("Error deleting single appointment:", error);
-      throw error;
-    }
-  };
-
-  // Função otimizada para excluir vários agendamentos recorrentes
-  const deleteAllRecurringAppointments = async () => {
-    try {
-      // First, get the IDs of all appointments in the recurring series
-      // We find them by matching client_id, recurrence type, and creation timestamp
-      const { data: relatedAppointments, error: fetchError } = await supabase
-        .from("appointments")
-        .select("id")
-        .eq("client_id", appointment.client_id)
-        .eq("recurrence", appointment.recurrence)
-        .gte("created_at", appointment.created_at || new Date().toISOString());
-
-      if (fetchError) throw fetchError;
-      
-      if (!relatedAppointments || relatedAppointments.length === 0) {
-        return true; // No appointments to delete
-      }
-      
-      // Extract just the IDs
-      const appointmentIds = relatedAppointments.map(app => app.id);
-      
-      // Delete all appointments in a single operation
-      const { error: deleteError } = await supabase
-        .from("appointments")
-        .delete()
-        .in("id", appointmentIds);
-        
-      if (deleteError) throw deleteError;
-      
-      return true;
-    } catch (error) {
-      console.error("Error deleting recurring appointments:", error);
-      throw error;
-    }
-  };
-
-  // Função principal de exclusão com tratamento de erros aprimorado
+  // Main function to handle deletion with improved error handling
   const handleDelete = async (deleteAll: boolean = false) => {
-    setIsDeleting(true);
-    
     try {
-      let success = false;
-      
       if (isRecurring && deleteAll) {
-        // Delete all recurring appointments
-        success = await deleteAllRecurringAppointments();
-        
-        if (success) {
-          toast({
-            title: "Sucesso",
-            description: "Todos os agendamentos recorrentes foram excluídos com sucesso",
-          });
-        }
+        // Delete all recurring appointments in the series
+        await deleteAllRecurringAppointments(appointment);
       } else {
         // Delete just this appointment
-        success = await deleteSingleAppointment();
-        
-        if (success) {
-          toast({
-            title: "Sucesso",
-            description: "Agendamento excluído com sucesso",
-          });
-        }
+        await deleteSingleAppointment(appointment.id);
       }
-      
-      // Fechar modal e atualizar lista apenas se a operação foi bem-sucedida
-      if (success) {
-        onOpenChange(false);
-        if (onSuccess) onSuccess();
-      }
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: `Falha ao excluir agendamento: ${error.message}`,
-        variant: "destructive",
-      });
     } finally {
-      setIsDeleting(false);
+      // Always hide the confirmation dialog regardless of success/failure
       setShowDeleteConfirm(false);
     }
   };
