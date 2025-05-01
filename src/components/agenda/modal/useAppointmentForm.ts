@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -62,7 +61,7 @@ export const useAppointmentForm = ({
       startTime: "09:00",
       notes: "",
       status: "scheduled",
-      paymentStatus: null, // Alterado para null conforme solicitado
+      paymentStatus: null,
       customPrices: {},
     },
   });
@@ -215,8 +214,7 @@ export const useAppointmentForm = ({
           startTime: "09:00",
           notes: "",
           status: "scheduled",
-          paymentStatus: null, // Alterado para null conforme solicitado
-          recurrence: "none",
+          paymentStatus: null,
           customPrices: {},
         });
       }
