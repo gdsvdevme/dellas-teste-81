@@ -46,18 +46,6 @@ const AppointmentDateTimeStep = ({
   // Check if recurrence is enabled (not "none")
   const isRecurrenceEnabled = formValues.recurrence && formValues.recurrence !== "none";
 
-  // Lidar com alteração na quantidade de recorrências
-  const handleRecurrenceCountChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
-    const count = parseInt(value, 10);
-    
-    if (!isNaN(count) && count >= 1) {
-      updateFormValues({ recurrenceCount: count });
-    } else {
-      updateFormValues({ recurrenceCount: 1 });
-    }
-  };
-
   return (
     <div className="space-y-5">
       <h3 className="text-lg font-playfair font-medium mb-4 text-salon-primary">Selecione Data e Hora</h3>
@@ -131,23 +119,6 @@ const AppointmentDateTimeStep = ({
           </SelectContent>
         </Select>
       </div>
-
-      {/* Recurrence count - mostrar apenas quando recorrência estiver habilitada */}
-      {isRecurrenceEnabled && (
-        <div className="space-y-2.5">
-          <label className="block text-sm font-medium">Quantidade de repetições</label>
-          <Input
-            type="number"
-            min="1"
-            value={formValues.recurrenceCount || 1}
-            onChange={handleRecurrenceCountChange}
-            className="w-full rounded-md border-salon-secondary/50"
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Quantas vezes este agendamento deve se repetir
-          </p>
-        </div>
-      )}
 
       {/* Weekday selection - only show when recurrence is enabled */}
       {isRecurrenceEnabled && (
