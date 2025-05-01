@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,6 +31,8 @@ export const appointmentSchema = z.object({
   notes: z.string().optional(),
   status: z.enum(allowedAppointmentStatus),
   paymentStatus: z.enum(allowedPaymentStatus),
+  recurrence: z.enum(["none", "weekly", "biweekly", "monthly"]).nullable().default("none"),
+  recurrenceDays: z.array(z.string()).default([]),
   customPrices: z.record(z.string(), z.number()).optional(),
 });
 
@@ -64,6 +67,8 @@ export const useAppointmentForm = ({
       notes: "",
       status: "agendado" as AppointmentStatus,
       paymentStatus: "não definido" as PaymentStatus,
+      recurrence: "none",
+      recurrenceDays: [],
       customPrices: {},
     },
   });
@@ -112,6 +117,8 @@ export const useAppointmentForm = ({
         notes: appointment.notes || "",
         status: uiStatus,
         paymentStatus: uiPaymentStatus,
+        recurrence: appointment.recurrence as "weekly" | "biweekly" | "monthly" | "none" | null || "none",
+        recurrenceDays: appointment.recurrence_days || [],
         customPrices: customPrices,
       });
     } else if (selectedDate) {
@@ -185,6 +192,8 @@ export const useAppointmentForm = ({
         status: dbStatus,
         payment_status: dbPaymentStatus,
         final_price: totalPrice,
+        recurrence: values.recurrence === "none" ? null : values.recurrence,
+        recurrence_days: values.recurrenceDays.length > 0 ? values.recurrenceDays : null,
       };
       
       let appointmentId = appointment?.id;
@@ -258,6 +267,8 @@ export const useAppointmentForm = ({
           notes: "",
           status: "agendado",
           paymentStatus: "não definido",
+          recurrence: "none",
+          recurrenceDays: [],
           customPrices: {},
         });
       }

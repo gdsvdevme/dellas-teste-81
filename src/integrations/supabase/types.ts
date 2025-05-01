@@ -57,6 +57,7 @@ export type Database = {
           payment_date: string | null
           payment_status: string
           recurrence: string | null
+          recurrence_days: string[] | null
           start_time: string
           status: string
         }
@@ -71,6 +72,7 @@ export type Database = {
           payment_date?: string | null
           payment_status?: string
           recurrence?: string | null
+          recurrence_days?: string[] | null
           start_time: string
           status?: string
         }
@@ -85,6 +87,7 @@ export type Database = {
           payment_date?: string | null
           payment_status?: string
           recurrence?: string | null
+          recurrence_days?: string[] | null
           start_time?: string
           status?: string
         }

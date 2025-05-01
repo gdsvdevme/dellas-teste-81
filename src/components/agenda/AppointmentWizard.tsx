@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,6 +24,7 @@ export type AppointmentFormValues = {
   status: "agendado" | "cancelado" | "finalizado" | "pagamento pendente";
   paymentStatus: "pendente" | "pago" | "não definido";
   recurrence: "none" | "weekly" | "biweekly" | "monthly" | null;
+  recurrenceDays: string[];
   customPrices: Record<string, number>;
 };
 
@@ -62,6 +64,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
     status: "agendado",
     paymentStatus: "não definido",
     recurrence: "none",
+    recurrenceDays: [],
     customPrices: {},
   });
 
@@ -176,6 +179,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
         payment_status: dbPaymentStatus,
         final_price: totalPrice,
         recurrence: formValues.recurrence === "none" ? null : formValues.recurrence,
+        recurrence_days: formValues.recurrenceDays.length > 0 ? formValues.recurrenceDays : null,
       };
       
       // Create appointment

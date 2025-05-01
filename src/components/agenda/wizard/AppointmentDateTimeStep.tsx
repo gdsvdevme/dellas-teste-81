@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const AppointmentDateTimeStep = ({
   formValues,
@@ -21,6 +22,29 @@ const AppointmentDateTimeStep = ({
     { value: "biweekly", label: "Quinzenal" },
     { value: "monthly", label: "Mensal" },
   ];
+
+  // Define weekdays for selection
+  const weekdays = [
+    { value: "domingo", label: "D" },
+    { value: "segunda", label: "S" },
+    { value: "terca", label: "T" },
+    { value: "quarta", label: "Q" },
+    { value: "quinta", label: "Q" },
+    { value: "sexta", label: "S" },
+    { value: "sabado", label: "S" },
+  ];
+
+  // Toggle a day in the recurrenceDays array
+  const handleDayToggle = (day: string) => {
+    updateFormValues({
+      recurrenceDays: formValues.recurrenceDays?.includes(day)
+        ? formValues.recurrenceDays.filter(d => d !== day)
+        : [...(formValues.recurrenceDays || []), day]
+    });
+  };
+
+  // Check if recurrence is enabled (not "none")
+  const isRecurrenceEnabled = formValues.recurrence && formValues.recurrence !== "none";
 
   return (
     <div className="space-y-5">
@@ -79,7 +103,8 @@ const AppointmentDateTimeStep = ({
         <Select 
           value={formValues.recurrence || "none"}
           onValueChange={(value: any) => updateFormValues({ 
-            recurrence: value === "none" ? null : value 
+            recurrence: value === "none" ? null : value,
+            recurrenceDays: value === "none" ? [] : formValues.recurrenceDays
           })}
         >
           <SelectTrigger className="border-salon-secondary/50 rounded-md focus:ring-salon-primary">
@@ -94,6 +119,32 @@ const AppointmentDateTimeStep = ({
           </SelectContent>
         </Select>
       </div>
+
+      {/* Weekday selection - only show when recurrence is enabled */}
+      {isRecurrenceEnabled && (
+        <div className="space-y-2.5">
+          <label className="block text-sm font-medium">Dias da semana</label>
+          <ToggleGroup type="multiple" className="justify-start flex flex-wrap gap-1">
+            {weekdays.map((day) => (
+              <ToggleGroupItem
+                key={day.value}
+                value={day.value}
+                aria-label={day.value}
+                className="w-8 h-8 rounded-full"
+                pressed={formValues.recurrenceDays?.includes(day.value)}
+                onClick={() => handleDayToggle(day.value)}
+              >
+                {day.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          <p className="text-xs text-muted-foreground mt-1">
+            {formValues.recurrenceDays?.length 
+              ? "Dias selecionados: " + formValues.recurrenceDays.length 
+              : "Selecione pelo menos um dia da semana"}
+          </p>
+        </div>
+      )}
 
       {/* Notes field */}
       <div className="space-y-2.5">

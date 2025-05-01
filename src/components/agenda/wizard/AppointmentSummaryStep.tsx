@@ -4,6 +4,19 @@ import { ptBR } from "date-fns/locale";
 import { AppointmentStepProps } from "../AppointmentWizard";
 import { formatDuration } from "../AgendaUtils";
 
+const formatDayName = (day: string): string => {
+  const dayMap: Record<string, string> = {
+    'domingo': 'Domingo',
+    'segunda': 'Segunda',
+    'terca': 'Terça',
+    'quarta': 'Quarta',
+    'quinta': 'Quinta',
+    'sexta': 'Sexta',
+    'sabado': 'Sábado'
+  };
+  return dayMap[day] || day;
+};
+
 const AppointmentSummaryStep = ({
   formValues,
   clients,
@@ -62,7 +75,6 @@ const AppointmentSummaryStep = ({
               <div key={service.id} className="flex justify-between">
                 <div>
                   <div>{service.name}</div>
-                  {/* Duration removed as requested */}
                 </div>
                 <div className="font-medium">
                   R$ {servicePrice.toFixed(2)}
@@ -87,9 +99,16 @@ const AppointmentSummaryStep = ({
       </div>
       
       {/* Recurrence info */}
-      <div>
+      <div className={formValues.recurrenceDays?.length ? "border-b pb-4" : ""}>
         <h4 className="text-sm font-medium text-gray-500">RECORRÊNCIA</h4>
         <div className="font-medium">{getRecurrenceLabel()}</div>
+        
+        {/* Show selected days if there are any */}
+        {formValues.recurrenceDays?.length > 0 && (
+          <div className="text-sm mt-1">
+            Dias: {formValues.recurrenceDays.map(formatDayName).join(", ")}
+          </div>
+        )}
       </div>
       
       {/* Notes if any */}
