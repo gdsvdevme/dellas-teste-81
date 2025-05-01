@@ -1,6 +1,8 @@
 
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { AppointmentStatus } from "./modal/AppointmentStatusSelect";
+import { PaymentStatus } from "./modal/AppointmentPaymentStatusSelect";
 
 // Formatar data e hora
 export const formatDateTime = (date: string | Date, formatStr: string = "PPp") => {
@@ -9,32 +11,38 @@ export const formatDateTime = (date: string | Date, formatStr: string = "PPp") =
 };
 
 // Status de agendamento
-export const appointmentStatusMap = {
-  scheduled: {
+export const appointmentStatusMap: Record<string, {
+  label: string;
+  color: string;
+}> = {
+  agendado: {
     label: "Agendado",
     color: "bg-blue-50 border-blue-500 text-blue-700",
   },
-  cancelled: {
+  cancelado: {
     label: "Cancelado",
     color: "bg-red-50 border-red-500 text-red-700",
   },
-  completed: {
+  finalizado: {
     label: "Finalizado",
     color: "bg-green-50 border-green-500 text-green-700",
   },
-  pendingPayment: {
+  "pagamento pendente": {
     label: "Pagamento Pendente",
     color: "bg-yellow-50 border-yellow-500 text-yellow-700",
   },
 };
 
 // Status de pagamento
-export const paymentStatusMap = {
-  pending: {
+export const paymentStatusMap: Record<string, {
+  label: string;
+  color: string;
+}> = {
+  pendente: {
     label: "Pendente",
     color: "bg-yellow-50 border-yellow-500 text-yellow-700",
   },
-  paid: {
+  pago: {
     label: "Pago",
     color: "bg-green-50 border-green-500 text-green-700",
   },

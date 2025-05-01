@@ -2,6 +2,15 @@
 import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { i18n } from "@/lib/i18n";
 
+export const allowedAppointmentStatus = [
+  "agendado", 
+  "cancelado", 
+  "finalizado", 
+  "pagamento pendente"
+] as const;
+
+export type AppointmentStatus = typeof allowedAppointmentStatus[number];
+
 interface AppointmentStatusSelectProps {
   form: any;
 }
@@ -20,7 +29,7 @@ const AppointmentStatusSelect = ({ form }: AppointmentStatusSelectProps) => {
               {...field}
               onChange={(e) => {
                 // When status changes, update payment status consistently
-                const newStatus = e.target.value;
+                const newStatus = e.target.value as AppointmentStatus;
                 field.onChange(newStatus);
                 
                 // Update payment status based on the new appointment status

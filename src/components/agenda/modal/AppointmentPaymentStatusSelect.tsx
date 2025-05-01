@@ -2,6 +2,13 @@
 import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { i18n } from "@/lib/i18n";
 
+export const allowedPaymentStatus = [
+  "pendente", 
+  "pago"
+] as const;
+
+export type PaymentStatus = typeof allowedPaymentStatus[number] | null;
+
 interface AppointmentPaymentStatusSelectProps {
   form: any;
 }
@@ -21,7 +28,7 @@ const AppointmentPaymentStatusSelect = ({ form }: AppointmentPaymentStatusSelect
               value={field.value || "null"}
               onChange={(e) => {
                 // Handle null as a string but convert it to actual null
-                const value = e.target.value === "null" ? null : e.target.value;
+                const value = e.target.value === "null" ? null : e.target.value as PaymentStatus;
                 field.onChange(value);
                 
                 // Update appointment status based on payment status

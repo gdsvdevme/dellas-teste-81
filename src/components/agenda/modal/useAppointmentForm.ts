@@ -7,6 +7,8 @@ import { addMinutes } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
+import { AppointmentStatus, allowedAppointmentStatus } from "./AppointmentStatusSelect";
+import { PaymentStatus, allowedPaymentStatus } from "./AppointmentPaymentStatusSelect";
 
 // Types
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
@@ -27,8 +29,8 @@ export const appointmentSchema = z.object({
   date: z.date({ required_error: "A data é obrigatória" }),
   startTime: z.string({ required_error: "O horário é obrigatório" }),
   notes: z.string().optional(),
-  status: z.enum(["agendado", "cancelado", "finalizado", "pagamento pendente"]),
-  paymentStatus: z.enum(["pendente", "pago"]).nullable(),
+  status: z.enum(allowedAppointmentStatus),
+  paymentStatus: z.enum(allowedPaymentStatus).nullable(),
   customPrices: z.record(z.string(), z.number()).optional(),
 });
 
@@ -61,7 +63,7 @@ export const useAppointmentForm = ({
       date: selectedDate || new Date(),
       startTime: "09:00",
       notes: "",
-      status: "agendado",
+      status: "agendado" as AppointmentStatus,
       paymentStatus: null,
       customPrices: {},
     },
@@ -87,8 +89,8 @@ export const useAppointmentForm = ({
         startTime: startDate.getHours().toString().padStart(2, '0') + ":" + 
                   startDate.getMinutes().toString().padStart(2, '0'),
         notes: appointment.notes || "",
-        status: appointment.status,
-        paymentStatus: appointment.payment_status,
+        status: appointment.status as AppointmentStatus,
+        paymentStatus: appointment.payment_status as PaymentStatus,
         customPrices: customPrices,
       });
     } else if (selectedDate) {
