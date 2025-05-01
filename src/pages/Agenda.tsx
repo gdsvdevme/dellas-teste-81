@@ -14,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const Agenda = () => {
   const [date, setDate] = useState<Date>(new Date());
-  const [view, setView] = useState<"day" | "week" | "month">("week");
+  const [view, setView] = useState<"day" | "week" | "month">("day");
   const [isAppointmentWizardOpen, setIsAppointmentWizardOpen] = useState(false);
 
   // Format the date according to the current view

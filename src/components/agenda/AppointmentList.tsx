@@ -204,6 +204,9 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
   if (view === "week") {
     const weekStart = startOfWeek(date, { locale: ptBR });
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+    
+    // Array dos nomes dos dias da semana em português
+    const weekdayNames = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 
     return (
       <div>
@@ -214,34 +217,41 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-0.5 border rounded-md overflow-hidden">
+            {/* Cabeçalhos dos dias da semana */}
+            {days.map((day, index) => (
+              <div key={`header-${day.toString()}`} className="bg-gray-50 py-2 text-center">
+                <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {weekdayNames[day.getDay()]}
+                </div>
+                <div className="text-lg font-medium">
+                  {format(day, "dd")}
+                </div>
+              </div>
+            ))}
+            
+            {/* Células dos dias com agendamentos */}
             {days.map((day) => {
               const dayAppointments = appointments.filter((apt) => 
                 isSameDay(new Date(apt.start_time), day)
+              ).sort((a, b) => 
+                new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
               );
               
               return (
-                <div key={day.toString()} className="border rounded-md p-2 bg-white">
-                  <div className="text-center font-medium mb-2 sticky top-0 bg-white pb-1 border-b">
-                    <div className="text-xs uppercase tracking-wide text-gray-500">
-                      {format(day, "EEE", { locale: ptBR })}
-                    </div>
-                    <div className="text-lg">{format(day, "dd", { locale: ptBR })}</div>
-                  </div>
-
-                  <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                <div key={`cell-${day.toString()}`} className="min-h-[200px] max-h-[300px] overflow-y-auto border-r border-t p-0.5">
+                  <div className="space-y-0.5">
                     {dayAppointments.length > 0 ? (
                       dayAppointments.map((appointment) => (
-                        <AppointmentCard
+                        <AppointmentCardCompact
                           key={appointment.id}
                           appointment={appointment}
                           onClick={() => setDetailsAppointment(appointment)}
-                          variant="week"
                         />
                       ))
                     ) : (
-                      <div className="text-xs text-gray-400 text-center py-2">
-                        Sem agendamentos
+                      <div className="h-full flex items-center justify-center">
+                        <div className="text-xs text-gray-300">-</div>
                       </div>
                     )}
                   </div>
@@ -360,6 +370,39 @@ const AppointmentCard = ({ appointment, onClick, variant, showDate = false }: Ap
             </StatusBadge>
           </div>
         </div>
+      </div>
+    </div>
+  );
+};
+
+// Novo componente de cartão de agendamento mais compacto para visualização semanal
+const AppointmentCardCompact = ({ appointment, onClick }: { appointment: Appointment; onClick: () => void }) => {
+  const startTime = new Date(appointment.start_time);
+  const displayStatus = getDisplayStatus(appointment.status);
+  const statusConfig = appointmentStatusMap[displayStatus];
+  const StatusIcon = statusConfig?.icon;
+
+  // Determine a cor de borda baseada no status
+  const statusBorderClass = {
+    agendado: "border-l-blue-500",
+    cancelado: "border-l-red-500",
+    finalizado: "border-l-green-500",
+    "pagamento pendente": "border-l-yellow-500"
+  }[displayStatus] || "border-l-gray-300";
+
+  return (
+    <div
+      onClick={onClick}
+      className={`border-l-2 ${statusBorderClass} bg-white rounded-sm p-1 cursor-pointer hover:bg-gray-50 transition-colors text-xs`}
+    >
+      <div className="font-semibold">
+        {format(startTime, "HH:mm")}
+      </div>
+      <div className="font-medium line-clamp-1">
+        {appointment.clients?.name}
+      </div>
+      <div className="flex items-center mt-0.5">
+        {StatusIcon && <StatusIcon className={`h-2.5 w-2.5 mr-1 ${statusConfig?.badgeVariant === 'success' ? 'text-green-600' : statusConfig?.badgeVariant === 'danger' ? 'text-red-600' : statusConfig?.badgeVariant === 'warning' ? 'text-yellow-600' : 'text-blue-600'}`} />}
       </div>
     </div>
   );
