@@ -29,7 +29,7 @@ export const appointmentSchema = z.object({
   startTime: z.string({ required_error: "O horário é obrigatório" }),
   notes: z.string().optional(),
   status: z.enum(allowedAppointmentStatus),
-  paymentStatus: z.enum(allowedPaymentStatus).nullable(),
+  paymentStatus: z.enum(allowedPaymentStatus),
   customPrices: z.record(z.string(), z.number()).optional(),
 });
 
@@ -63,7 +63,7 @@ export const useAppointmentForm = ({
       startTime: "09:00",
       notes: "",
       status: "agendado" as AppointmentStatus,
-      paymentStatus: null,
+      paymentStatus: "não definido" as PaymentStatus,
       customPrices: {},
     },
   });
@@ -80,6 +80,28 @@ export const useAppointmentForm = ({
           customPrices[service.service_id] = service.final_price;
         });
       }
+
+      // Map database payment_status to UI values
+      let uiPaymentStatus: PaymentStatus = "não definido";
+      if (appointment.payment_status === "paid") {
+        uiPaymentStatus = "pago";
+      } else if (appointment.payment_status === "pending") {
+        uiPaymentStatus = "pendente";
+      } else if (appointment.payment_status === "undefined" || appointment.payment_status === null) {
+        uiPaymentStatus = "não definido";
+      }
+
+      // Map database status to UI values
+      let uiStatus: AppointmentStatus = "agendado";
+      if (appointment.status === "scheduled") {
+        uiStatus = "agendado";
+      } else if (appointment.status === "cancelled") {
+        uiStatus = "cancelado";
+      } else if (appointment.status === "completed") {
+        uiStatus = "finalizado";
+      } else if (appointment.status === "pending_payment") {
+        uiStatus = "pagamento pendente";
+      }
       
       form.reset({
         clientId: appointment.client_id,
@@ -88,8 +110,8 @@ export const useAppointmentForm = ({
         startTime: startDate.getHours().toString().padStart(2, '0') + ":" + 
                   startDate.getMinutes().toString().padStart(2, '0'),
         notes: appointment.notes || "",
-        status: appointment.status as AppointmentStatus,
-        paymentStatus: appointment.payment_status as PaymentStatus,
+        status: uiStatus,
+        paymentStatus: uiPaymentStatus,
         customPrices: customPrices,
       });
     } else if (selectedDate) {
@@ -135,14 +157,33 @@ export const useAppointmentForm = ({
         return total + (customPrice !== undefined ? customPrice : service.price);
       }, 0);
       
+      // Map UI status to database values
+      let dbStatus: string;
+      switch(values.status) {
+        case "agendado": dbStatus = "scheduled"; break;
+        case "cancelado": dbStatus = "cancelled"; break;
+        case "finalizado": dbStatus = "completed"; break;
+        case "pagamento pendente": dbStatus = "pending_payment"; break;
+        default: dbStatus = "scheduled";
+      }
+
+      // Map UI payment status to database values
+      let dbPaymentStatus: string;
+      switch(values.paymentStatus) {
+        case "pago": dbPaymentStatus = "paid"; break;
+        case "pendente": dbPaymentStatus = "pending"; break;
+        case "não definido": dbPaymentStatus = "undefined"; break; // Use "undefined" string instead of null
+        default: dbPaymentStatus = "undefined";
+      }
+      
       // Prepare appointment data
       const appointmentData = {
         client_id: values.clientId,
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
         notes: values.notes,
-        status: values.status,
-        payment_status: values.paymentStatus,
+        status: dbStatus,
+        payment_status: dbPaymentStatus,
         final_price: totalPrice,
       };
       
@@ -216,7 +257,7 @@ export const useAppointmentForm = ({
           startTime: "09:00",
           notes: "",
           status: "agendado",
-          paymentStatus: null,
+          paymentStatus: "não definido",
           customPrices: {},
         });
       }

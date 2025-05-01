@@ -27,9 +27,8 @@ const AppointmentPaymentStatusSelect = ({ form }: AppointmentPaymentStatusSelect
             <Select
               value={field.value || "não definido"}
               onValueChange={(value) => {
-                // Handle "não definido" as null in the form but as string in UI
-                const paymentValue = value === "não definido" ? null : value as PaymentStatus;
-                field.onChange(paymentValue);
+                // Handle all values as strings in UI and in form data
+                field.onChange(value);
                 
                 // Update appointment status based on payment status
                 if (value === "pago") {

@@ -35,7 +35,7 @@ const AppointmentStatusSelect = ({ form }: AppointmentStatusSelectProps) => {
                 
                 // Update payment status based on the new appointment status
                 if (newStatus === "cancelado" || newStatus === "agendado") {
-                  form.setValue("paymentStatus", null);
+                  form.setValue("paymentStatus", "não definido");
                 } else if (newStatus === "finalizado") {
                   form.setValue("paymentStatus", "pago");
                 } else if (newStatus === "pagamento pendente") {

@@ -74,7 +74,10 @@ export function DialogEditPayment({
     resolver: zodResolver(formSchema),
     defaultValues: {
       status: appointment.status,
-      payment_status: appointment.payment_status || "não definido",
+      payment_status: appointment.payment_status === null ? "não definido" : 
+                     appointment.payment_status === "undefined" ? "não definido" : 
+                     appointment.payment_status === "paid" ? "pago" :
+                     appointment.payment_status === "pending" ? "pendente" : "não definido",
       final_price: appointment.final_price || 0,
     },
   });
@@ -116,10 +119,23 @@ export function DialogEditPayment({
 
   // Handle form submission
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // Map UI values to database values
+    const dbStatus = values.status;
+    let dbPaymentStatus = values.payment_status;
+    
+    // Map "não definido" to "undefined" for the database
+    if (values.payment_status === "não definido") {
+      dbPaymentStatus = "undefined";
+    } else if (values.payment_status === "pago") {
+      dbPaymentStatus = "paid";
+    } else if (values.payment_status === "pendente") {
+      dbPaymentStatus = "pending";
+    }
+    
     // Ensure we're passing the required properties with non-optional values
     onUpdate({
-      status: values.status,
-      payment_status: values.payment_status === "não definido" ? null : values.payment_status,
+      status: dbStatus,
+      payment_status: dbPaymentStatus,
       final_price: values.final_price,
     });
   }

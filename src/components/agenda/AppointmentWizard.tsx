@@ -20,8 +20,8 @@ export type AppointmentFormValues = {
   date: Date;
   startTime: string;
   notes: string;
-  status: "agendado" | "cancelado" | "finalizado";
-  paymentStatus: "pendente" | "pago" | null;
+  status: "agendado" | "cancelado" | "finalizado" | "pagamento pendente";
+  paymentStatus: "pendente" | "pago" | "não definido";
   recurrence: "none" | "weekly" | "biweekly" | "monthly" | null;
   customPrices: Record<string, number>;
 };
@@ -60,7 +60,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
     startTime: "09:00",
     notes: "",
     status: "agendado",
-    paymentStatus: null,
+    paymentStatus: "não definido",
     recurrence: "none",
     customPrices: {},
   });
@@ -236,16 +236,17 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
       case "agendado": return "scheduled";
       case "cancelado": return "cancelled";
       case "finalizado": return "completed";
+      case "pagamento pendente": return "pending_payment";
       default: return "scheduled";
     }
   };
 
-  const mapFormPaymentStatusToDatabase = (formStatus: string | null): string | null => {
-    if (formStatus === null) return null;
+  const mapFormPaymentStatusToDatabase = (formStatus: string): string => {
     switch (formStatus) {
       case "pendente": return "pending";
       case "pago": return "paid";
-      default: return null;
+      case "não definido": return "undefined"; // Use "undefined" string instead of null
+      default: return "undefined";
     }
   };
 
