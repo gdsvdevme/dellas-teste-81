@@ -23,7 +23,7 @@ interface DataTableProps<T> {
   columns: {
     header: string;
     accessorKey: keyof T | ((row: T) => React.ReactNode);
-    cell?: (row: T) => React.ReactNode;
+    cell?: (info: any) => React.ReactNode;
   }[];
   searchField?: keyof T;
   pageSize?: number;
@@ -41,8 +41,18 @@ export function DataTable<T>({
   // Filter data based on search
   const filteredData = searchField
     ? data.filter((item) => {
-        const field = item[searchField];
-        return field && String(field).toLowerCase().includes(searchQuery.toLowerCase());
+        if (!item) return false;
+        
+        // Handle nested properties using dot notation (e.g., 'client.name')
+        const fieldPath = String(searchField).split('.');
+        let fieldValue: any = item;
+        
+        for (const path of fieldPath) {
+          if (!fieldValue) return false;
+          fieldValue = fieldValue[path as keyof typeof fieldValue];
+        }
+        
+        return fieldValue && String(fieldValue).toLowerCase().includes(searchQuery.toLowerCase());
       })
     : data;
 
@@ -95,10 +105,26 @@ export function DataTable<T>({
                   {columns.map((column, columnIndex) => (
                     <TableCell key={columnIndex}>
                       {column.cell
-                        ? column.cell(row)
+                        ? column.cell({ row: { original: row } })
                         : typeof column.accessorKey === "function"
                         ? column.accessorKey(row)
-                        : String(row[column.accessorKey] || "")}
+                        : (() => {
+                            // Handle nested properties using dot notation
+                            if (typeof column.accessorKey === 'string' && column.accessorKey.includes('.')) {
+                              const paths = column.accessorKey.split('.');
+                              let value: any = row;
+                              
+                              for (const path of paths) {
+                                if (!value) return '';
+                                value = value[path as keyof typeof value];
+                              }
+                              
+                              return String(value || '');
+                            }
+                            
+                            return String(row[column.accessorKey as keyof T] || '');
+                          })()
+                      }
                     </TableCell>
                   ))}
                 </TableRow>

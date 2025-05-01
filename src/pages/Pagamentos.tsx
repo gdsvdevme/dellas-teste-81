@@ -53,6 +53,7 @@ const Pagamentos: React.FC = () => {
   const { data: appointments = [], isLoading } = useQuery({
     queryKey: ['appointments'],
     queryFn: async () => {
+      console.log("Fetching appointments");
       const { data, error } = await supabase
         .from('appointments')
         .select(`
@@ -66,14 +67,15 @@ const Pagamentos: React.FC = () => {
               name
             )
           )
-        `)
-        .order('start_time', { ascending: false });
+        `);
 
       if (error) {
         toast.error("Erro ao carregar agendamentos");
         console.error("Error fetching appointments:", error);
         return [];
       }
+      
+      console.log("Appointments data:", data);
       return data as Appointment[];
     }
   });
@@ -163,7 +165,9 @@ const Pagamentos: React.FC = () => {
 
   // Paid appointments for table display
   const paidAppointments = React.useMemo(() => {
-    return appointments.filter(appointment => appointment.payment_status === 'pago');
+    const paid = appointments.filter(appointment => appointment.payment_status === 'pago');
+    console.log("Paid appointments:", paid);
+    return paid;
   }, [appointments]);
 
   // Table columns for paid appointments
@@ -171,40 +175,48 @@ const Pagamentos: React.FC = () => {
     {
       header: "Data",
       accessorKey: "start_time",
-      cell: (row: any) => format(new Date(row.row.original.start_time), "dd/MM/yyyy HH:mm")
+      cell: (info: any) => {
+        const date = info.row.original.start_time;
+        return date ? format(new Date(date), "dd/MM/yyyy HH:mm") : "Data não disponível";
+      }
     },
     {
       header: "Cliente",
-      accessorKey: "client.name"
+      accessorKey: "client.name",
+      cell: (info: any) => info.row.original.client?.name || "Cliente não especificado"
     },
     {
       header: "Serviço",
-      accessorKey: (row: Appointment) => {
-        return row.appointment_services?.map(as => as.service?.name).join(", ") || "Não especificado";
+      accessorKey: "service_name",
+      cell: (info: any) => {
+        const services = info.row.original.appointment_services || [];
+        return services.length > 0
+          ? services.map((as: any) => as.service?.name).filter(Boolean).join(", ")
+          : "Não especificado";
       }
     },
     {
       header: "Status",
       accessorKey: "status",
-      cell: (row: any) => (
-        <StatusBadge variant={row.row.original.status === "finalizado" ? "success" : "warning"}>
-          {row.row.original.status === "finalizado" ? "Finalizado" : "Agendado"}
+      cell: (info: any) => (
+        <StatusBadge variant={info.row.original.status === "finalizado" ? "success" : "warning"}>
+          {info.row.original.status === "finalizado" ? "Finalizado" : "Agendado"}
         </StatusBadge>
       )
     },
     {
       header: "Valor",
       accessorKey: "final_price",
-      cell: (row: any) => `R$ ${row.row.original.final_price || 0}`
+      cell: (info: any) => `R$ ${info.row.original.final_price || 0}`
     },
     {
       header: "Ações",
       accessorKey: "id",
-      cell: (row: any) => (
+      cell: (info: any) => (
         <Button 
           size="sm" 
           variant="ghost" 
-          onClick={() => setSelectedAppointment(row.row.original)}
+          onClick={() => setSelectedAppointment(info.row.original)}
         >
           <Edit className="h-4 w-4" />
         </Button>
@@ -345,11 +357,19 @@ const Pagamentos: React.FC = () => {
           {isLoading ? (
             <div className="flex justify-center py-8">Carregando pagamentos realizados...</div>
           ) : (
-            <DataTable
-              data={paidAppointments}
-              columns={paidColumns}
-              searchField="client.name"
-            />
+            <>
+              {paidAppointments.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Não há pagamentos realizados</p>
+                </div>
+              ) : (
+                <DataTable
+                  data={paidAppointments}
+                  columns={paidColumns}
+                  searchField="client.name"
+                />
+              )}
+            </>
           )}
         </TabsContent>
       </Tabs>
