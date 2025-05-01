@@ -12,6 +12,7 @@ import Agenda from "@/pages/Agenda";
 import Auth from "@/pages/Auth";
 import NotFound from "./pages/NotFound";
 import Pagamentos from "./pages/Pagamentos";
+import Clientes from "./pages/Clientes";
 
 // Página temporária para rotas ainda não implementadas
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -42,7 +43,7 @@ const App = () => (
             >
               <Route path="/" element={<Dashboard />} />
               <Route path="/agenda" element={<Agenda />} />
-              <Route path="/clientes" element={<PlaceholderPage title="Clientes" />} />
+              <Route path="/clientes" element={<Clientes />} />
               <Route path="/servicos" element={<PlaceholderPage title="Serviços" />} />
               <Route path="/estoque" element={<PlaceholderPage title="Estoque" />} />
               <Route path="/financas" element={<PlaceholderPage title="Finanças" />} />
