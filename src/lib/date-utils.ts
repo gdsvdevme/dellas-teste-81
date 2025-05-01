@@ -30,7 +30,7 @@ export function calculateRecurrenceDates(
   recurrenceDays: string[],
   recurrenceCount: number
 ): Date[] {
-  if (!recurrence || recurrence === "none" || recurrenceCount <= 1 || recurrenceDays.length === 0) {
+  if (!recurrence || recurrenceCount <= 1 || recurrenceDays.length === 0) {
     return [];
   }
 
