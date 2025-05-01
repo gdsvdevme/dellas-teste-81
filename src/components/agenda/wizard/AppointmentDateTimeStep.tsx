@@ -125,18 +125,23 @@ const AppointmentDateTimeStep = ({
         <div className="space-y-2.5">
           <label className="block text-sm font-medium">Dias da semana</label>
           <ToggleGroup type="multiple" className="justify-start flex flex-wrap gap-1">
-            {weekdays.map((day) => (
-              <ToggleGroupItem
-                key={day.value}
-                value={day.value}
-                aria-label={day.value}
-                className="w-8 h-8 rounded-full"
-                pressed={formValues.recurrenceDays?.includes(day.value)}
-                onClick={() => handleDayToggle(day.value)}
-              >
-                {day.label}
-              </ToggleGroupItem>
-            ))}
+            {weekdays.map((day) => {
+              const isSelected = formValues.recurrenceDays?.includes(day.value);
+              return (
+                <ToggleGroupItem
+                  key={day.value}
+                  value={day.value}
+                  aria-label={day.value}
+                  className={cn(
+                    "w-8 h-8 rounded-full",
+                    isSelected ? "bg-salon-primary text-white" : ""
+                  )}
+                  onClick={() => handleDayToggle(day.value)}
+                >
+                  {day.label}
+                </ToggleGroupItem>
+              );
+            })}
           </ToggleGroup>
           <p className="text-xs text-muted-foreground mt-1">
             {formValues.recurrenceDays?.length 
