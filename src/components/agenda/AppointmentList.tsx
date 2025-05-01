@@ -16,6 +16,7 @@ import { Database } from "@/integrations/supabase/types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { appointmentStatusMap, getDisplayStatus } from "./AgendaUtils";
 import AppointmentDetails from "./AppointmentDetails";
+import { useToast } from "@/hooks/use-toast";
 
 // Updated Appointment type to use final_price instead of price
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
