@@ -25,6 +25,7 @@ export type AppointmentFormValues = {
   paymentStatus: "pendente" | "pago" | "não definido";
   recurrence: "none" | "weekly" | "biweekly" | "monthly" | null;
   recurrenceDays: string[];
+  recurrenceCount: number;
   customPrices: Record<string, number>;
 };
 
@@ -65,6 +66,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
     paymentStatus: "não definido",
     recurrence: "none",
     recurrenceDays: [],
+    recurrenceCount: 1,
     customPrices: {},
   });
 
@@ -180,6 +182,7 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
         final_price: totalPrice,
         recurrence: formValues.recurrence === "none" ? null : formValues.recurrence,
         recurrence_days: formValues.recurrenceDays.length > 0 ? formValues.recurrenceDays : null,
+        recurrence_count: formValues.recurrenceCount || 1,
       };
       
       // Create appointment

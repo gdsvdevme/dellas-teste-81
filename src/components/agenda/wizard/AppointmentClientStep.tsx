@@ -4,6 +4,7 @@ import { Check, Search, UserPlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AppointmentStepProps } from "../AppointmentWizard";
+import ClientDialogQuick from "@/components/clients/ClientDialogQuick";
 
 const AppointmentClientStep = ({
   formValues,
@@ -12,12 +13,19 @@ const AppointmentClientStep = ({
   loadingClients
 }: AppointmentStepProps) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
   
   // Filter clients based on search term
   const filteredClients = clients.filter(client => 
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.phone?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Quando um novo cliente é adicionado com sucesso
+  const handleClientAdded = (newClient: any) => {
+    // Atualizar para usar o novo cliente no formulário
+    updateFormValues({ clientId: newClient.id });
+  };
 
   return (
     <div>
@@ -74,15 +82,17 @@ const AppointmentClientStep = ({
           <Button
             variant="outline"
             className="w-full flex items-center justify-center gap-2 rounded-md border-salon-secondary/50"
-            onClick={() => {
-              // This would normally open a dialog to add a new client
-              // For now, just show a message
-              alert("Funcionalidade de adicionar cliente será implementada em breve");
-            }}
+            onClick={() => setIsAddClientDialogOpen(true)}
           >
             <UserPlus className="h-4 w-4" />
             Adicionar Novo Cliente
           </Button>
+
+          <ClientDialogQuick
+            open={isAddClientDialogOpen}
+            onOpenChange={setIsAddClientDialogOpen}
+            onSuccess={handleClientAdded}
+          />
         </>
       )}
     </div>

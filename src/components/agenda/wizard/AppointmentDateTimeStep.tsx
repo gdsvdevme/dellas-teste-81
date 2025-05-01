@@ -46,6 +46,14 @@ const AppointmentDateTimeStep = ({
   // Check if recurrence is enabled (not "none")
   const isRecurrenceEnabled = formValues.recurrence && formValues.recurrence !== "none";
 
+  // Handle recurrence count change
+  const handleRecurrenceCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    if (value > 0) {
+      updateFormValues({ recurrenceCount: value });
+    }
+  };
+
   return (
     <div className="space-y-5">
       <h3 className="text-lg font-playfair font-medium mb-4 text-salon-primary">Selecione Data e Hora</h3>
@@ -104,7 +112,8 @@ const AppointmentDateTimeStep = ({
           value={formValues.recurrence || "none"}
           onValueChange={(value: any) => updateFormValues({ 
             recurrence: value === "none" ? null : value,
-            recurrenceDays: value === "none" ? [] : formValues.recurrenceDays
+            recurrenceDays: value === "none" ? [] : formValues.recurrenceDays,
+            recurrenceCount: value === "none" ? 1 : formValues.recurrenceCount || 1
           })}
         >
           <SelectTrigger className="border-salon-secondary/50 rounded-md focus:ring-salon-primary">
@@ -120,35 +129,53 @@ const AppointmentDateTimeStep = ({
         </Select>
       </div>
 
-      {/* Weekday selection - only show when recurrence is enabled */}
+      {/* Show recurrence options only when recurrence is enabled */}
       {isRecurrenceEnabled && (
-        <div className="space-y-2.5">
-          <label className="block text-sm font-medium">Dias da semana</label>
-          <ToggleGroup type="multiple" className="justify-start flex flex-wrap gap-1">
-            {weekdays.map((day) => {
-              const isSelected = formValues.recurrenceDays?.includes(day.value);
-              return (
-                <ToggleGroupItem
-                  key={day.value}
-                  value={day.value}
-                  aria-label={day.value}
-                  className={cn(
-                    "w-8 h-8 rounded-full",
-                    isSelected ? "bg-salon-primary text-white" : ""
-                  )}
-                  onClick={() => handleDayToggle(day.value)}
-                >
-                  {day.label}
-                </ToggleGroupItem>
-              );
-            })}
-          </ToggleGroup>
-          <p className="text-xs text-muted-foreground mt-1">
-            {formValues.recurrenceDays?.length 
-              ? "Dias selecionados: " + formValues.recurrenceDays.length 
-              : "Selecione pelo menos um dia da semana"}
-          </p>
-        </div>
+        <>
+          {/* Recurrence Count */}
+          <div className="space-y-2.5">
+            <label className="block text-sm font-medium">Quantidade de recorrências</label>
+            <Input
+              type="number"
+              min="1"
+              value={formValues.recurrenceCount || 1}
+              onChange={handleRecurrenceCountChange}
+              className="rounded-md border-salon-secondary/50"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Número de vezes que o evento se repetirá
+            </p>
+          </div>
+
+          {/* Weekday selection */}
+          <div className="space-y-2.5">
+            <label className="block text-sm font-medium">Dias da semana</label>
+            <ToggleGroup type="multiple" className="justify-start flex flex-wrap gap-1">
+              {weekdays.map((day) => {
+                const isSelected = formValues.recurrenceDays?.includes(day.value);
+                return (
+                  <ToggleGroupItem
+                    key={day.value}
+                    value={day.value}
+                    aria-label={day.value}
+                    className={cn(
+                      "w-8 h-8 rounded-full",
+                      isSelected ? "bg-salon-primary text-white" : ""
+                    )}
+                    onClick={() => handleDayToggle(day.value)}
+                  >
+                    {day.label}
+                  </ToggleGroupItem>
+                );
+              })}
+            </ToggleGroup>
+            <p className="text-xs text-muted-foreground mt-1">
+              {formValues.recurrenceDays?.length 
+                ? "Dias selecionados: " + formValues.recurrenceDays.length 
+                : "Selecione pelo menos um dia da semana"}
+            </p>
+          </div>
+        </>
       )}
 
       {/* Notes field */}
