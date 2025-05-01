@@ -167,45 +167,45 @@ const AppointmentDetails = ({
   return (
     <>
       <Dialog open={open && !showEditModal} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader className="bg-gradient-to-r from-salon-primary/90 to-salon-primary p-4 -m-6 mb-2 rounded-t-lg">
+        <DialogContent className="sm:max-w-md p-0 rounded-lg overflow-hidden">
+          <DialogHeader className="bg-gradient-to-r from-salon-primary/90 to-salon-primary p-5 rounded-t-lg">
             <DialogTitle className="text-white flex items-center gap-2">
               <span>Detalhes do Agendamento</span>
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4 mt-4">
+          <div className="space-y-4 p-5">
             {/* Seção Cliente */}
-            <Card>
+            <Card className="shadow-sm">
               <CardContent className="p-4">
-                <h3 className="text-sm font-semibold text-muted-foreground mb-1">CLIENTE</h3>
+                <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-1">CLIENTE</h3>
                 <p className="text-lg font-medium">{appointment.clients?.name || "Cliente não especificado"}</p>
               </CardContent>
             </Card>
             
             {/* Seção Data e Hora */}
-            <Card>
+            <Card className="shadow-sm">
               <CardContent className="p-4">
-                <h3 className="text-sm font-semibold text-muted-foreground mb-1">DATA E HORA</h3>
+                <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-1">DATA E HORA</h3>
                 <p className="font-medium">{formatDateTime(appointment.start_time, "PPP")}</p>
                 <p>{formatDateTime(appointment.start_time, "HH:mm")}</p>
               </CardContent>
             </Card>
             
             {/* Seção Serviços */}
-            <Card>
+            <Card className="shadow-sm">
               <CardContent className="p-4">
-                <h3 className="text-sm font-semibold text-muted-foreground mb-1">SERVIÇOS</h3>
+                <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-1">SERVIÇOS</h3>
                 {services.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3 mt-2">
                     {services.map((service, index) => (
                       <div key={index} className="flex justify-between items-center">
-                        <span>{service.name}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">R$</span>
+                        <span className="text-sm font-medium flex-1">{service.name}</span>
+                        <div className="flex items-center gap-1 w-24">
+                          <span className="text-sm font-medium text-muted-foreground">R$</span>
                           <Input 
                             type="number" 
-                            className="w-24 text-right"
+                            className="w-full text-right h-8 text-sm"
                             value={serviceValues[service.id] || service.price}
                             onChange={(e) => {
                               const newValue = parseFloat(e.target.value) || 0;
@@ -215,7 +215,7 @@ const AppointmentDetails = ({
                         </div>
                       </div>
                     ))}
-                    <div className="pt-2 mt-2 border-t flex justify-between font-semibold">
+                    <div className="pt-3 mt-2 border-t flex justify-between font-semibold">
                       <span>Total</span>
                       <span>R$ {calculateTotal().toFixed(2)}</span>
                     </div>
@@ -227,12 +227,15 @@ const AppointmentDetails = ({
             </Card>
             
             {/* Seção Status */}
-            <Card>
+            <Card className="shadow-sm">
               <CardContent className="p-4">
-                <h3 className="text-sm font-semibold text-muted-foreground mb-1">STATUS</h3>
+                <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-1">STATUS</h3>
                 <div className="flex items-center mt-1">
-                  <StatusBadge variant={statusConfig?.badgeVariant || "default"} className="flex items-center gap-1">
-                    {StatusIcon && <StatusIcon className="h-3 w-3" />}
+                  <StatusBadge 
+                    variant={statusConfig?.badgeVariant || "default"} 
+                    className="flex items-center gap-1 py-1 px-3 text-sm"
+                  >
+                    {StatusIcon && <StatusIcon className="h-3.5 w-3.5" />}
                     {statusConfig?.label || displayStatus}
                   </StatusBadge>
                 </div>
@@ -240,53 +243,65 @@ const AppointmentDetails = ({
             </Card>
           </div>
           
-          <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="sm:order-3 w-full sm:w-auto"
-            >
-              Fechar
-            </Button>
+          <DialogFooter className="px-5 pb-5 pt-0 flex-col sm:flex-row gap-3">
+            <div className="flex gap-2 w-full sm:w-auto order-3 sm:order-1">
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
+              >
+                Fechar
+              </Button>
+            </div>
             
-            <div className="flex gap-2 w-full sm:w-auto">
+            <div className="flex gap-2 w-full sm:w-auto order-2 sm:order-2">
               <Button 
                 variant="destructive" 
-                className="flex items-center gap-2 w-full sm:w-auto"
+                className="flex items-center gap-1 w-full sm:w-auto"
                 onClick={() => handleUpdateStatus("cancelado", "não definido")}
                 disabled={isUpdating}
               >
                 <X className="h-4 w-4" />
                 Cancelar
               </Button>
-              
+            </div>
+            
+            <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="default"
-                    className="flex items-center gap-2 w-full sm:w-auto"
+                    className="flex items-center justify-between gap-2 w-full sm:w-auto"
                     disabled={isUpdating}
                   >
-                    <Check className="h-4 w-4" />
-                    Concluir
-                    <ChevronDown className="h-4 w-4" />
+                    <span className="flex items-center gap-1">
+                      <Check className="h-4 w-4" />
+                      Concluir
+                    </span>
+                    <ChevronDown className="h-4 w-4 ml-1 opacity-70" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => handleUpdateStatus("finalizado", "pago")}>
-                    Pago
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem 
+                    className="cursor-pointer flex items-center gap-2" 
+                    onClick={() => handleUpdateStatus("finalizado", "pago")}
+                  >
+                    <Check className="h-4 w-4 text-green-600" />
+                    <span>Pago</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleUpdateStatus("pagamento pendente", "pendente")}>
-                    Não pago
+                  <DropdownMenuItem 
+                    className="cursor-pointer flex items-center gap-2" 
+                    onClick={() => handleUpdateStatus("pagamento pendente", "pendente")}
+                  >
+                    <ChevronDown className="h-4 w-4 text-yellow-600" />
+                    <span>Não pago</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-            
-            <div className="flex gap-2 w-full sm:w-auto">
+              
               <Button 
                 variant="outline" 
-                className="flex items-center gap-2 w-full sm:w-auto"
+                className="flex items-center gap-1 w-full sm:w-auto"
                 onClick={() => setShowEditModal(true)}
               >
                 <Edit className="h-4 w-4" />
@@ -295,7 +310,7 @@ const AppointmentDetails = ({
               
               <Button 
                 variant="outline"
-                className="flex items-center gap-2 text-destructive w-full sm:w-auto"
+                className="flex items-center gap-1 text-destructive w-full sm:w-auto"
                 onClick={handleDelete}
                 disabled={isDeleting}
               >

@@ -1,13 +1,14 @@
 
 import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { i18n } from "@/lib/i18n";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const allowedPaymentStatus = [
   "pendente", 
   "pago"
 ] as const;
 
-export type PaymentStatus = typeof allowedPaymentStatus[number] | null;
+export type PaymentStatus = typeof allowedPaymentStatus[number] | "não definido";
 
 interface AppointmentPaymentStatusSelectProps {
   form: any;
@@ -22,21 +23,19 @@ const AppointmentPaymentStatusSelect = ({ form }: AppointmentPaymentStatusSelect
         <FormItem>
           <FormLabel>Pagamento</FormLabel>
           <FormControl>
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              {...field}
+            <Select
               value={field.value || "não definido"}
-              onChange={(e) => {
-                // Handle "não definido" as a string but convert it to actual null
-                const value = e.target.value === "não definido" ? null : e.target.value as PaymentStatus;
-                field.onChange(value);
+              onValueChange={(value) => {
+                // Handle "não definido" as null in the form but as string in UI
+                const paymentValue = value === "não definido" ? null : value as PaymentStatus;
+                field.onChange(paymentValue);
                 
                 // Update appointment status based on payment status
                 if (value === "pago") {
                   form.setValue("status", "finalizado");
                 } else if (value === "pendente") {
                   form.setValue("status", "pagamento pendente");
-                } else if (value === null) {
+                } else if (value === "não definido") {
                   // Only change status if current status is inconsistent
                   const currentStatus = form.getValues("status");
                   if (currentStatus === "finalizado" || currentStatus === "pagamento pendente") {
@@ -45,16 +44,21 @@ const AppointmentPaymentStatusSelect = ({ form }: AppointmentPaymentStatusSelect
                 }
               }}
             >
-              <option value="não definido">
-                Não definido
-              </option>
-              <option value="pendente">
-                {i18n.paymentStatus.pending}
-              </option>
-              <option value="pago">
-                {i18n.paymentStatus.paid}
-              </option>
-            </select>
+              <SelectTrigger className="rounded-md border-salon-secondary/50">
+                <SelectValue placeholder="Selecione o status de pagamento" />
+              </SelectTrigger>
+              <SelectContent className="rounded-md border-salon-secondary/30">
+                <SelectItem value="não definido">
+                  Não definido
+                </SelectItem>
+                <SelectItem value="pendente">
+                  {i18n.paymentStatus.pending}
+                </SelectItem>
+                <SelectItem value="pago">
+                  {i18n.paymentStatus.paid}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </FormControl>
         </FormItem>
       )}

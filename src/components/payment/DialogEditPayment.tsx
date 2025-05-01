@@ -126,10 +126,10 @@ export function DialogEditPayment({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] rounded-md">
-        <DialogHeader>
-          <DialogTitle className="text-salon-primary">Editar Pagamento</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="sm:max-w-[500px] rounded-lg p-0 overflow-hidden">
+        <DialogHeader className="bg-gradient-to-r from-salon-primary/90 to-salon-primary p-5 rounded-t-lg">
+          <DialogTitle className="text-white">Editar Pagamento</DialogTitle>
+          <DialogDescription className="text-white/80">
             Cliente: {appointment.client?.name}
             <br />
             Data: {format(new Date(appointment.start_time), "dd/MM/yyyy HH:mm")}
@@ -139,7 +139,7 @@ export function DialogEditPayment({
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-5">
             <FormField
               control={form.control}
               name="status"
@@ -214,7 +214,7 @@ export function DialogEditPayment({
               )}
             />
 
-            <DialogFooter>
+            <DialogFooter className="pt-2 flex gap-2 justify-end">
               <Button type="button" variant="outline" onClick={onClose} className="rounded-md">Cancelar</Button>
               <Button type="submit" variant="salon">Salvar Alterações</Button>
             </DialogFooter>
