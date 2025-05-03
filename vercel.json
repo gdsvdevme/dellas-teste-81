@@ -1,28 +1,24 @@
-
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "routes": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1",
-      "headers": { "cache-control": "public, max-age=31536000, immutable" }
+      "source": "/(.*)",
+      "destination": "/index.html"
     },
     {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1",
-      "headers": { "cache-control": "public, max-age=31536000, immutable" }
+      "source": "/static/(.*)",
+      "destination": "/static/$1"
     },
     {
-      "src": "/(.+\\.[a-zA-Z0-9]{5,}\\.(js|css))",
-      "dest": "/$1",
-      "headers": { "cache-control": "public, max-age=31536000, immutable" }
+      "source": "/assets/(.*)",
+      "destination": "/assets/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "/index.html",
-      "headers": { "cache-control": "public, max-age=0, must-revalidate" }
+      "source": "/(.+\\.[a-zA-Z0-9]{5,}\\.(js|css))",
+      "destination": "/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "trailingSlash": false,
