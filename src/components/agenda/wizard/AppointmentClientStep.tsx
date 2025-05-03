@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AppointmentStepProps } from "../AppointmentWizard";
 import ClientDialogQuick from "@/components/clients/ClientDialogQuick";
+import { removeDiacritics } from "@/lib/utils";
 
 const AppointmentClientStep = ({
   formValues,
@@ -15,11 +16,15 @@ const AppointmentClientStep = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
   
-  // Filter clients based on search term
-  const filteredClients = clients.filter(client => 
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.phone?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter clients based on search term with accent-insensitive comparison
+  const filteredClients = clients.filter(client => {
+    const normalizedName = removeDiacritics(client.name);
+    const normalizedPhone = removeDiacritics(client.phone || '');
+    const normalizedSearchTerm = removeDiacritics(searchTerm);
+    
+    return normalizedName.includes(normalizedSearchTerm) || 
+           normalizedPhone.includes(normalizedSearchTerm);
+  });
 
   // Quando um novo cliente é adicionado com sucesso
   const handleClientAdded = (newClient: any) => {

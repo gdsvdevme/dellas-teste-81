@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { removeDiacritics } from "@/lib/utils";
 
 interface DataTableProps<T> {
   data: T[];
@@ -59,7 +60,11 @@ export function DataTable<T>({
           }
         }
         
-        return fieldValue && String(fieldValue).toLowerCase().includes(searchQuery.toLowerCase());
+        // Normalize both the field value and search query to remove diacritics
+        const normalizedFieldValue = removeDiacritics(String(fieldValue || ''));
+        const normalizedSearchQuery = removeDiacritics(searchQuery);
+        
+        return normalizedFieldValue.includes(normalizedSearchQuery);
       })
     : data;
 
