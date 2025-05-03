@@ -2,9 +2,10 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Plus } from "lucide-react";
+import { CalendarIcon, Plus, Search } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
 import { i18n } from "@/lib/i18n";
@@ -18,6 +19,7 @@ const Agenda = () => {
   const [view, setView] = useState<"day" | "week" | "month">("day");
   const [isAppointmentWizardOpen, setIsAppointmentWizardOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
   // Format the date according to the current view
@@ -128,9 +130,19 @@ const Agenda = () => {
         <div className="md:col-span-2">
           <Card>
             <CardContent className="p-4">
+              <div className="relative mb-4">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar agendamento por nome do cliente..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 rounded-md border-salon-secondary/50"
+                />
+              </div>
               <AppointmentList 
                 date={date} 
                 view={view}
+                searchTerm={searchTerm}
                 key={refreshKey} // Força refresh quando muda
               />
             </CardContent>

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { 
   format, 
@@ -18,6 +19,7 @@ import { appointmentStatusMap, getDisplayStatus } from "./AgendaUtils";
 import AppointmentDetails from "./AppointmentDetails";
 import { useToast } from "@/hooks/use-toast";
 import { Repeat } from "lucide-react";
+import { removeDiacritics } from "@/lib/utils";
 
 // Updated Appointment type to use final_price instead of price and include parent-child fields
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
@@ -45,9 +47,10 @@ const isRecurringAppointment = (appointment: Appointment): boolean => {
 interface AppointmentListProps {
   date: Date;
   view: "day" | "week" | "month";
+  searchTerm?: string;
 }
 
-const AppointmentList = ({ date, view }: AppointmentListProps) => {
+const AppointmentList = ({ date, view, searchTerm = "" }: AppointmentListProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailsAppointment, setDetailsAppointment] = useState<Appointment | null>(null);
@@ -113,12 +116,35 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
     }
   };
 
+  // Filter appointments based on search term
+  const filterAppointmentsBySearch = (appointments: Appointment[]): Appointment[] => {
+    if (!searchTerm || searchTerm.trim() === "") {
+      return appointments;
+    }
+
+    const normalizedSearchTerm = removeDiacritics(searchTerm.toLowerCase());
+    
+    return appointments.filter((appointment) => {
+      const clientName = appointment.clients?.name || "";
+      const normalizedClientName = removeDiacritics(clientName.toLowerCase());
+      
+      // Services are in an array, so we need to join them
+      const serviceNames = appointment.appointment_services?.map(s => s.services?.name || "") || [];
+      const serviceString = removeDiacritics(serviceNames.join(" ").toLowerCase());
+      
+      return normalizedClientName.includes(normalizedSearchTerm) || 
+             serviceString.includes(normalizedSearchTerm);
+    });
+  };
+
   // Renderização baseada na visualização selecionada
   if (view === "day") {
     // Filter appointments for the selected day and sort by start time
-    const dayAppointments = appointments
-      .filter(apt => isSameDay(new Date(apt.start_time), date))
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+    const dayAppointments = filterAppointmentsBySearch(
+      appointments
+        .filter(apt => isSameDay(new Date(apt.start_time), date))
+        .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+    );
 
     return (
       <div>
@@ -148,7 +174,7 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
               </div>
             ) : (
               <div className="text-center py-6 text-gray-500">
-                Nenhum agendamento encontrado neste dia
+                {searchTerm ? "Nenhum agendamento encontrado com esse filtro" : "Nenhum agendamento encontrado neste dia"}
               </div>
             )}
           </>
@@ -170,6 +196,9 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
     
     // Array dos nomes dos dias da semana em português
     const weekdayNames = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
+
+    // Filter appointments based on search term
+    const filteredAppointments = filterAppointmentsBySearch(appointments);
 
     return (
       <div>
@@ -195,7 +224,7 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
             
             {/* Células dos dias com agendamentos */}
             {days.map((day) => {
-              const dayAppointments = appointments.filter((apt) => 
+              const dayAppointments = filteredAppointments.filter((apt) => 
                 isSameDay(new Date(apt.start_time), day)
               ).sort((a, b) => 
                 new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
@@ -235,6 +264,8 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
   }
 
   // Visualização mensal (simplificada)
+  const filteredMonthAppointments = filterAppointmentsBySearch(appointments);
+
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">Agendamentos do Mês</h2>
@@ -245,8 +276,8 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
         </div>
       ) : (
         <div className="space-y-2">
-          {appointments.length > 0 ? (
-            appointments.map((appointment) => (
+          {filteredMonthAppointments.length > 0 ? (
+            filteredMonthAppointments.map((appointment) => (
               <AppointmentCard
                 key={appointment.id}
                 appointment={appointment}
@@ -257,7 +288,7 @@ const AppointmentList = ({ date, view }: AppointmentListProps) => {
             ))
           ) : (
             <div className="text-center py-6 text-gray-500">
-              Nenhum agendamento encontrado neste mês
+              {searchTerm ? "Nenhum agendamento encontrado com esse filtro" : "Nenhum agendamento encontrado neste mês"}
             </div>
           )}
         </div>
