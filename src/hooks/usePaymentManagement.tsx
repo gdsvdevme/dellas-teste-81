@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -7,6 +8,7 @@ import { type Appointment, type ClientAppointments } from "@/components/payment/
 export const usePaymentManagement = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [openCollapsibleIds, setOpenCollapsibleIds] = useState<string[]>([]);
+  const [selectedAppointmentIds, setSelectedAppointmentIds] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
   // Fetch appointments with client details
@@ -61,6 +63,11 @@ export const usePaymentManagement = () => {
 
   // Handle payment
   const handlePayment = (appointment: Appointment) => {
+    // Remove from selected if it's selected
+    if (selectedAppointmentIds.includes(appointment.id)) {
+      setSelectedAppointmentIds(prev => prev.filter(id => id !== appointment.id));
+    }
+    
     updateAppointmentMutation.mutate({
       id: appointment.id,
       values: { 
@@ -74,6 +81,12 @@ export const usePaymentManagement = () => {
 
   // Handle payment for all appointments of a client
   const handlePayAllForClient = (clientId: string, appointments: Appointment[]) => {
+    // Remove all client appointments from selected
+    const appointmentIds = appointments.map(apt => apt.id);
+    setSelectedAppointmentIds(prev => 
+      prev.filter(id => !appointmentIds.includes(id))
+    );
+    
     appointments.forEach(appointment => {
       updateAppointmentMutation.mutate({
         id: appointment.id,
@@ -93,6 +106,30 @@ export const usePaymentManagement = () => {
         ? prev.filter(id => id !== clientId)
         : [...prev, clientId]
     );
+  };
+
+  // Toggle appointment selection
+  const toggleAppointmentSelection = (appointmentId: string, isSelected: boolean) => {
+    setSelectedAppointmentIds(prev => {
+      if (isSelected && !prev.includes(appointmentId)) {
+        return [...prev, appointmentId];
+      } else if (!isSelected && prev.includes(appointmentId)) {
+        return prev.filter(id => id !== appointmentId);
+      }
+      return prev;
+    });
+  };
+
+  // Update appointment price
+  const updateAppointmentPrice = (appointmentId: string, newPrice: number) => {
+    updateAppointmentMutation.mutate({
+      id: appointmentId,
+      values: {
+        status: "pagamento pendente", // Maintain status
+        payment_status: "pendente", // Maintain payment status
+        final_price: newPrice
+      }
+    });
   };
 
   // Group appointments by client for pending payments
@@ -141,6 +178,9 @@ export const usePaymentManagement = () => {
     handlePayAllForClient,
     updateAppointmentMutation,
     pendingPaymentsByClient,
-    paidAppointments
+    paidAppointments,
+    selectedAppointmentIds,
+    toggleAppointmentSelection,
+    updateAppointmentPrice
   };
 };

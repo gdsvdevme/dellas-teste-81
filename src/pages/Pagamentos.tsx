@@ -19,7 +19,10 @@ const Pagamentos: React.FC = () => {
     handlePayAllForClient,
     updateAppointmentMutation,
     pendingPaymentsByClient,
-    paidAppointments
+    paidAppointments,
+    selectedAppointmentIds,
+    toggleAppointmentSelection,
+    updateAppointmentPrice
   } = usePaymentManagement();
 
   return (
@@ -44,6 +47,9 @@ const Pagamentos: React.FC = () => {
             handlePayment={handlePayment}
             handlePayAllForClient={handlePayAllForClient}
             setSelectedAppointment={setSelectedAppointment}
+            selectedAppointmentIds={selectedAppointmentIds}
+            toggleAppointmentSelection={toggleAppointmentSelection}
+            updateAppointmentPrice={updateAppointmentPrice}
           />
         </TabsContent>
 
