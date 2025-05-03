@@ -13,10 +13,6 @@
       "destination": "/assets/$1"
     },
     {
-      "source": "/(.+\\.[a-zA-Z0-9]{5,}\\.(js|css))",
-      "destination": "/$1"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
