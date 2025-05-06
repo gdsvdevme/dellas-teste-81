@@ -20,6 +20,7 @@ const Pagamentos: React.FC = () => {
     toggleCollapsible,
     handlePayment,
     handlePayAllForClient,
+    handlePaySelectedAppointments,
     updateAppointmentMutation,
     pendingPaymentsByClient,
     paidAppointments,
@@ -74,6 +75,7 @@ const Pagamentos: React.FC = () => {
             selectedAppointmentIds={selectedAppointmentIds}
             toggleAppointmentSelection={toggleAppointmentSelection}
             updateAppointmentPrice={updateAppointmentPrice}
+            handlePaySelectedAppointments={handlePaySelectedAppointments}
           />
         </TabsContent>
 

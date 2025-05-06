@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -9,6 +8,7 @@ export const usePaymentManagement = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [openCollapsibleIds, setOpenCollapsibleIds] = useState<string[]>([]);
   const [selectedAppointmentIds, setSelectedAppointmentIds] = useState<string[]>([]);
+  const [paymentMethod, setPaymentMethod] = useState<string>("dinheiro");
   const queryClient = useQueryClient();
 
   // Fetch appointments with client details
@@ -21,7 +21,9 @@ export const usePaymentManagement = () => {
         .select(`
           *,
           client:client_id (
-            name
+            id,
+            name,
+            phone
           ),
           appointment_services (
             service_id,
@@ -44,7 +46,7 @@ export const usePaymentManagement = () => {
 
   // Mutation for updating appointment status
   const updateAppointmentMutation = useMutation({
-    mutationFn: async ({ id, values }: { id: string, values: { status: string, payment_status: string, final_price?: number } }) => {
+    mutationFn: async ({ id, values }: { id: string, values: { status: string, payment_status: string, final_price?: number, payment_method?: string } }) => {
       const { error } = await supabase
         .from('appointments')
         .update(values)
@@ -62,7 +64,7 @@ export const usePaymentManagement = () => {
   });
 
   // Handle payment
-  const handlePayment = (appointment: Appointment) => {
+  const handlePayment = (appointment: Appointment, method?: string) => {
     // Remove from selected if it's selected
     if (selectedAppointmentIds.includes(appointment.id)) {
       setSelectedAppointmentIds(prev => prev.filter(id => id !== appointment.id));
@@ -73,6 +75,7 @@ export const usePaymentManagement = () => {
       values: { 
         status: "finalizado", 
         payment_status: "pago",
+        payment_method: method || paymentMethod,
         // Keep the same final_price if it already exists
         ...(appointment.final_price && { final_price: appointment.final_price })
       }
@@ -80,7 +83,7 @@ export const usePaymentManagement = () => {
   };
 
   // Handle payment for all appointments of a client
-  const handlePayAllForClient = (clientId: string, appointments: Appointment[]) => {
+  const handlePayAllForClient = (clientId: string, appointments: Appointment[], method?: string) => {
     // Remove all client appointments from selected
     const appointmentIds = appointments.map(apt => apt.id);
     setSelectedAppointmentIds(prev => 
@@ -93,10 +96,33 @@ export const usePaymentManagement = () => {
         values: { 
           status: "finalizado", 
           payment_status: "pago",
+          payment_method: method || paymentMethod,
           ...(appointment.final_price && { final_price: appointment.final_price })
         }
       });
     });
+  };
+
+  // Handle payment for selected appointments
+  const handlePaySelectedAppointments = (appointments: Appointment[], method?: string) => {
+    const selectedAppointments = appointments.filter(apt => 
+      selectedAppointmentIds.includes(apt.id)
+    );
+    
+    selectedAppointments.forEach(appointment => {
+      updateAppointmentMutation.mutate({
+        id: appointment.id,
+        values: { 
+          status: "finalizado", 
+          payment_status: "pago",
+          payment_method: method || paymentMethod,
+          ...(appointment.final_price && { final_price: appointment.final_price })
+        }
+      });
+    });
+    
+    // Clear selected appointments
+    setSelectedAppointmentIds([]);
   };
 
   // Toggle collapsible open/closed state
@@ -142,12 +168,14 @@ export const usePaymentManagement = () => {
           .forEach(appointment => {
             const clientId = appointment.client_id;
             const clientName = appointment.client?.name || 'Cliente Desconhecido';
+            const clientPhone = appointment.client?.phone || '';
             const price = appointment.final_price || 0;
 
             if (!clientMap.has(clientId)) {
               clientMap.set(clientId, {
                 client_id: clientId,
                 client_name: clientName,
+                client_phone: clientPhone,
                 appointments: [],
                 totalDue: 0
               });
@@ -176,11 +204,14 @@ export const usePaymentManagement = () => {
     toggleCollapsible,
     handlePayment,
     handlePayAllForClient,
+    handlePaySelectedAppointments,
     updateAppointmentMutation,
     pendingPaymentsByClient,
     paidAppointments,
     selectedAppointmentIds,
     toggleAppointmentSelection,
-    updateAppointmentPrice
+    updateAppointmentPrice,
+    paymentMethod,
+    setPaymentMethod
   };
 };

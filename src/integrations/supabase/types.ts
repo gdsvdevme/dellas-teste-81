@@ -127,6 +127,66 @@ export type Database = {
           },
         ]
       }
+      backup_pagamento_pendente: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          created_by: string | null
+          end_time: string | null
+          final_price: number | null
+          id: string | null
+          is_parent: boolean | null
+          notes: string | null
+          parent_appointment_id: string | null
+          payment_date: string | null
+          payment_status: string | null
+          recurrence: string | null
+          recurrence_count: number | null
+          recurrence_days: string[] | null
+          recurrence_group_id: string | null
+          start_time: string | null
+          status: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          end_time?: string | null
+          final_price?: number | null
+          id?: string | null
+          is_parent?: boolean | null
+          notes?: string | null
+          parent_appointment_id?: string | null
+          payment_date?: string | null
+          payment_status?: string | null
+          recurrence?: string | null
+          recurrence_count?: number | null
+          recurrence_days?: string[] | null
+          recurrence_group_id?: string | null
+          start_time?: string | null
+          status?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          end_time?: string | null
+          final_price?: number | null
+          id?: string | null
+          is_parent?: boolean | null
+          notes?: string | null
+          parent_appointment_id?: string | null
+          payment_date?: string | null
+          payment_status?: string | null
+          recurrence?: string | null
+          recurrence_count?: number | null
+          recurrence_days?: string[] | null
+          recurrence_group_id?: string | null
+          start_time?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       blocked_schedules: {
         Row: {
           created_at: string | null

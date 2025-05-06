@@ -37,6 +37,7 @@ type Appointment = {
   notes: string | null;
   client: {
     name: string;
+    phone?: string;
   };
   appointment_services: {
     service: {
@@ -50,13 +51,14 @@ interface DialogEditPaymentProps {
   appointment: Appointment;
   open: boolean;
   onClose: () => void;
-  onUpdate: (values: { status: string, payment_status: string, final_price: number }) => void;
+  onUpdate: (values: { status: string, payment_status: string, final_price: number, payment_method?: string }) => void;
 }
 
 // Form schema for validation
 const formSchema = z.object({
   status: z.string(),
   payment_status: z.string(),
+  payment_method: z.string().optional(),
   final_price: z.preprocess(
     (val) => (val === "" ? 0 : Number(val)),
     z.number().min(0, "O valor não pode ser negativo")
@@ -78,6 +80,7 @@ export function DialogEditPayment({
                      appointment.payment_status === "undefined" ? "não definido" : 
                      appointment.payment_status === "paid" ? "pago" :
                      appointment.payment_status === "pending" ? "pendente" : "não definido",
+      payment_method: appointment.payment_method || "dinheiro",
       final_price: appointment.final_price || 0,
     },
   });
@@ -117,6 +120,23 @@ export function DialogEditPayment({
     return () => subscription.unsubscribe();
   }, [form]);
 
+  // Generate WhatsApp link for sending receipt
+  const getWhatsAppLink = () => {
+    if (!appointment.client?.phone) return null;
+    
+    const serviceNames = appointment.appointment_services?.map(as => as.service?.name).join(", ") || "Serviço";
+    const date = format(new Date(appointment.start_time), "dd/MM/yyyy");
+    const amount = appointment.final_price?.toFixed(2);
+    const paymentMethod = form.getValues("payment_method");
+
+    const text = encodeURIComponent(
+      `Olá ${appointment.client.name}, confirmamos o pagamento do serviço: ${serviceNames} realizado em ${date} no valor de R$ ${amount}. ` +
+      `Método de pagamento: ${paymentMethod}. Obrigado!`
+    );
+    
+    return `https://wa.me/55${appointment.client.phone.replace(/\D/g, '')}?text=${text}`;
+  };
+
   // Handle form submission
   function onSubmit(values: z.infer<typeof formSchema>) {
     // Map UI values to database values
@@ -137,6 +157,7 @@ export function DialogEditPayment({
       status: dbStatus,
       payment_status: dbPaymentStatus,
       final_price: values.final_price,
+      payment_method: values.payment_method
     });
   }
 
@@ -147,6 +168,12 @@ export function DialogEditPayment({
           <DialogTitle className="text-white">Editar Pagamento</DialogTitle>
           <DialogDescription className="text-white/80">
             Cliente: {appointment.client?.name}
+            {appointment.client?.phone && (
+              <>
+                <br />
+                Telefone: {appointment.client.phone}
+              </>
+            )}
             <br />
             Data: {format(new Date(appointment.start_time), "dd/MM/yyyy HH:mm")}
             <br />
@@ -211,28 +238,67 @@ export function DialogEditPayment({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="final_price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor (R$)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      className="rounded-md border-salon-secondary/50"
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="final_price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor (R$)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        className="rounded-md border-salon-secondary/50"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="payment_method"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Método de Pagamento</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value || "dinheiro"}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="rounded-md border-salon-secondary/50">
+                          <SelectValue placeholder="Selecione o método" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-md border-salon-secondary/30 z-[75]">
+                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                        <SelectItem value="cartao">Cartão</SelectItem>
+                        <SelectItem value="pix">PIX</SelectItem>
+                        <SelectItem value="outro">Outro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <DialogFooter className="pt-2 flex gap-2 justify-end">
+              {appointment.client?.phone && appointment.payment_status === "pago" && (
+                <a
+                  href={getWhatsAppLink() || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium border"
+                >
+                  Enviar Comprovante (WhatsApp)
+                </a>
+              )}
               <Button type="button" variant="outline" onClick={onClose} className="rounded-md">Cancelar</Button>
               <Button type="submit" variant="salon">Salvar Alterações</Button>
             </DialogFooter>
