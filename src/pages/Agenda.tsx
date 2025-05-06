@@ -13,6 +13,7 @@ import AppointmentList from "@/components/agenda/AppointmentList";
 import AppointmentWizard from "@/components/agenda/AppointmentWizard";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/sonner";
 
 const Agenda = () => {
   const [date, setDate] = useState<Date>(new Date());
@@ -63,6 +64,7 @@ const Agenda = () => {
 
   return (
     <PageContainer>
+      <Toaster />
       <PageHeader title={i18n.common.agenda} subtitle={getFormattedDate()}>
         <div className="flex items-center gap-2">
           <Button

@@ -27,6 +27,7 @@ import { appointmentStatusMap, getDisplayStatus } from "./AgendaUtils";
 import AppointmentModal from "./AppointmentModal";
 import { useAppointmentDelete } from "./hooks/useAppointmentDelete";
 import { Progress } from "@/components/ui/progress";
+import AppointmentActions from "./AppointmentActions";
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
   clients?: { name: string } | null;
@@ -188,6 +189,21 @@ const AppointmentDetails = ({
                 <p className="text-sm text-gray-600 whitespace-pre-line">{appointment.notes}</p>
               </div>
             )}
+
+            {/* Quick Actions */}
+            <div className="pt-3 border-t">
+              <h4 className="text-sm font-medium mb-2">Ações Rápidas:</h4>
+              <AppointmentActions 
+                appointmentId={appointment.id}
+                currentStatus={appointment.status}
+                onSuccess={() => {
+                  if (onSuccess) onSuccess();
+                  onOpenChange(false);
+                }}
+                size="default"
+                variant="full"
+              />
+            </div>
 
             {/* Progress bar for deletion process */}
             {isDeleting && (
