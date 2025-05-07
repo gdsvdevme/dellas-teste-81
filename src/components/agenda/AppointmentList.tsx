@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Repeat } from "lucide-react";
 import { removeDiacritics } from "@/lib/utils";
 import AppointmentActions from "./AppointmentActions";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Updated Appointment type to use final_price instead of price and include parent-child fields
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
@@ -55,6 +56,7 @@ const AppointmentList = ({ date, view, searchTerm = "" }: AppointmentListProps) 
   const [loading, setLoading] = useState(true);
   const [detailsAppointment, setDetailsAppointment] = useState<Appointment | null>(null);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchAppointments();
@@ -318,6 +320,7 @@ interface AppointmentCardProps {
 
 const AppointmentCard = ({ appointment, onClick, variant, showDate = false, onSuccess }: AppointmentCardProps) => {
   const startTime = new Date(appointment.start_time);
+  const isMobile = useIsMobile();
   
   // Get proper status with translation from DB values
   const displayStatus = getDisplayStatus(appointment.status);
@@ -374,7 +377,7 @@ const AppointmentCard = ({ appointment, onClick, variant, showDate = false, onSu
             </div>
           )}
           
-          <div className="mt-1 flex items-center justify-between">
+          <div className={`mt-1 ${isMobile ? 'flex-col space-y-2' : 'flex items-center justify-between'}`}>
             <StatusBadge 
               variant={statusConfig?.badgeVariant || "default"} 
               className="flex items-center gap-1 text-xs"
@@ -383,15 +386,18 @@ const AppointmentCard = ({ appointment, onClick, variant, showDate = false, onSu
               <span className="line-clamp-1">{statusConfig?.label}</span>
             </StatusBadge>
             
-            {/* Always show actions (removed hover conditional) */}
+            {/* Em dispositivos móveis, os botões ficam em linha separada abaixo do status */}
             {(variant === "day" || variant === "month") && (
-              <div className="ml-2" onClick={(e) => e.stopPropagation()}>
+              <div 
+                className={`${isMobile ? 'mt-2' : 'ml-2'}`}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <AppointmentActions
                   appointmentId={appointment.id}
                   currentStatus={appointment.status}
                   onSuccess={onSuccess}
                   size="xs"
-                  variant="compact"
+                  variant={isMobile ? "icons" : "compact"}
                 />
               </div>
             )}
@@ -408,6 +414,7 @@ const AppointmentCardCompact = ({ appointment, onClick, onSuccess }: { appointme
   const displayStatus = getDisplayStatus(appointment.status);
   const statusConfig = appointmentStatusMap[displayStatus];
   const StatusIcon = statusConfig?.icon;
+  const isMobile = useIsMobile();
   
   // Check if this is a recurring appointment
   const isRecurring = isRecurringAppointment(appointment);
@@ -439,9 +446,9 @@ const AppointmentCardCompact = ({ appointment, onClick, onSuccess }: { appointme
         {StatusIcon && <StatusIcon className={`h-2.5 w-2.5 mr-1 ${statusConfig?.badgeVariant === 'success' ? 'text-green-600' : statusConfig?.badgeVariant === 'danger' ? 'text-red-600' : statusConfig?.badgeVariant === 'warning' ? 'text-yellow-600' : 'text-blue-600'}`} />}
       </div>
 
-      {/* Always show action buttons */}
+      {/* Sempre mostrar botões de ação, com alinhamento centralizado em telas pequenas */}
       <div 
-        className="p-0.5 rounded-b-sm flex justify-center mt-2"
+        className={`${isMobile ? 'flex justify-center items-center' : 'p-0.5'} rounded-b-sm mt-2`}
         onClick={(e) => e.stopPropagation()}
       >
         <AppointmentActions
