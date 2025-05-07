@@ -22,15 +22,27 @@ const AppointmentActions = ({
 }: AppointmentActionsProps) => {
   const updateAppointmentStatus = async (
     status: string,
-    paymentStatus: string
+    paymentStatus: string,
+    paymentMethod?: string
   ) => {
     try {
+      const updateData: {
+        status: string;
+        payment_status: string;
+        payment_method?: string;
+      } = {
+        status: status,
+        payment_status: paymentStatus,
+      };
+
+      // Only add payment_method if it's provided
+      if (paymentMethod) {
+        updateData.payment_method = paymentMethod;
+      }
+
       const { error } = await supabase
         .from("appointments")
-        .update({
-          status: status,
-          payment_status: paymentStatus,
-        })
+        .update(updateData)
         .eq("id", appointmentId);
 
       if (error) throw error;
@@ -65,7 +77,7 @@ const AppointmentActions = ({
           className={buttonBaseClass}
           variant="outline"
           size="icon"
-          onClick={() => updateAppointmentStatus("completed", "paid")}
+          onClick={() => updateAppointmentStatus("completed", "paid", "dinheiro")}
           disabled={isCompleted}
           title="Finalizar (Pago)"
         >
@@ -103,7 +115,7 @@ const AppointmentActions = ({
         <Button
           className={`${buttonBaseClass} bg-green-50 hover:bg-green-100 text-green-700 border-green-200`}
           variant="outline"
-          onClick={() => updateAppointmentStatus("completed", "paid")}
+          onClick={() => updateAppointmentStatus("completed", "paid", "dinheiro")}
           disabled={isCompleted}
         >
           <Check className="h-3 w-3 mr-1" />
@@ -138,7 +150,7 @@ const AppointmentActions = ({
       <Button
         className={`${buttonBaseClass} bg-green-50 hover:bg-green-100 text-green-700 border-green-200`}
         variant="outline"
-        onClick={() => updateAppointmentStatus("completed", "paid")}
+        onClick={() => updateAppointmentStatus("completed", "paid", "dinheiro")}
         disabled={isCompleted}
       >
         <Check className="h-3 w-3 mr-1" />

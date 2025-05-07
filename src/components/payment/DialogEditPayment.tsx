@@ -33,6 +33,7 @@ type Appointment = {
   end_time: string;
   status: string;
   payment_status: string;
+  payment_method?: string; // Added this property as optional
   final_price: number | null;
   notes: string | null;
   client: {
