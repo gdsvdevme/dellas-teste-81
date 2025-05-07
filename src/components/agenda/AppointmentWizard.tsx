@@ -168,9 +168,9 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
         return total + (customPrice !== undefined ? customPrice : service.price);
       }, 0);
       
-      // Map status values to database format
-      const dbStatus = mapFormStatusToDatabase(formValues.status);
-      const dbPaymentStatus = mapFormPaymentStatusToDatabase(formValues.paymentStatus);
+      // Use status values directly from the form without mapping/conversion
+      const dbStatus = formValues.status;
+      const dbPaymentStatus = formValues.paymentStatus;
       
       // Check if this is a recurring appointment
       const isRecurring = formValues.recurrence !== "none" && 
@@ -328,26 +328,6 @@ const AppointmentWizard = ({ open, onClose, onSuccess, selectedDate }: Appointme
       });
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  // Helper functions to map between form values and database values
-  const mapFormStatusToDatabase = (formStatus: string): string => {
-    switch (formStatus) {
-      case "agendado": return "scheduled";
-      case "cancelado": return "cancelled";
-      case "finalizado": return "completed";
-      case "pagamento pendente": return "pending_payment";
-      default: return "scheduled";
-    }
-  };
-
-  const mapFormPaymentStatusToDatabase = (formStatus: string): string => {
-    switch (formStatus) {
-      case "pendente": return "pending";
-      case "pago": return "paid";
-      case "não definido": return "undefined"; // Use "undefined" string instead of null
-      default: return "undefined";
     }
   };
 

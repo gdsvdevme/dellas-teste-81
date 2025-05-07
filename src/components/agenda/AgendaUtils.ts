@@ -57,6 +57,10 @@ export const paymentStatusMap: Record<string, {
     label: "Pago",
     color: "bg-green-50 border-green-500 text-green-700",
   },
+  "não definido": {
+    label: "Não definido",
+    color: "bg-gray-50 border-gray-300 text-gray-500",
+  }
 };
 
 // Recorrência de agendamento
@@ -94,8 +98,8 @@ export const formatDuration = (minutes: number) => {
   }
 };
 
-// Não precisamos mais das funções de tradução, já que os status estão em português no banco de dados
-// Mantendo apenas como identificadores para compatibilidade com código existente
+// Os status já estão em português no banco de dados, então essas funções
+// agora simplesmente retornam o status recebido sem tradução
 export const getDisplayStatus = (dbStatus: string) => {
   return dbStatus;
 };
