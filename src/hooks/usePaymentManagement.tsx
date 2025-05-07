@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -151,8 +152,8 @@ export const usePaymentManagement = () => {
     updateAppointmentMutation.mutate({
       id: appointmentId,
       values: {
-        status: "pagamento pendente", // Maintain status
-        payment_status: "pendente", // Maintain payment status
+        status: "pagamento pendente", // Use Portuguese value
+        payment_status: "pendente", // Use Portuguese value
         final_price: newPrice
       }
     });

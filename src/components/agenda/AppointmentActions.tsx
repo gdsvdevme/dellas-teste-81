@@ -56,9 +56,9 @@ const AppointmentActions = ({
   };
 
   // Determine if specific actions should be disabled based on current status
-  const isCompleted = currentStatus === "completed" || currentStatus === "finalizado";
-  const isCancelled = currentStatus === "cancelled" || currentStatus === "cancelado";
-  const isPendingPayment = currentStatus === "pending_payment" || currentStatus === "pagamento pendente";
+  const isCompleted = currentStatus === "finalizado";
+  const isCancelled = currentStatus === "cancelado";
+  const isPendingPayment = currentStatus === "pagamento pendente";
   
   const getButtonSize = () => {
     switch (size) {
@@ -77,7 +77,7 @@ const AppointmentActions = ({
           className={buttonBaseClass}
           variant="outline"
           size="icon"
-          onClick={() => updateAppointmentStatus("completed", "paid", "dinheiro")}
+          onClick={() => updateAppointmentStatus("finalizado", "pago", "dinheiro")}
           disabled={isCompleted}
           title="Finalizar (Pago)"
         >
@@ -88,7 +88,7 @@ const AppointmentActions = ({
           className={buttonBaseClass}
           variant="outline"
           size="icon"
-          onClick={() => updateAppointmentStatus("pending_payment", "pending")}
+          onClick={() => updateAppointmentStatus("pagamento pendente", "pendente")}
           disabled={isPendingPayment}
           title="Pagamento Pendente"
         >
@@ -99,7 +99,7 @@ const AppointmentActions = ({
           className={buttonBaseClass}
           variant="outline"
           size="icon"
-          onClick={() => updateAppointmentStatus("cancelled", "undefined")}
+          onClick={() => updateAppointmentStatus("cancelado", "não definido")}
           disabled={isCancelled}
           title="Cancelar"
         >
@@ -115,7 +115,7 @@ const AppointmentActions = ({
         <Button
           className={`${buttonBaseClass} bg-green-50 hover:bg-green-100 text-green-700 border-green-200`}
           variant="outline"
-          onClick={() => updateAppointmentStatus("completed", "paid", "dinheiro")}
+          onClick={() => updateAppointmentStatus("finalizado", "pago", "dinheiro")}
           disabled={isCompleted}
         >
           <Check className="h-3 w-3 mr-1" />
@@ -125,7 +125,7 @@ const AppointmentActions = ({
         <Button
           className={`${buttonBaseClass} bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200`}
           variant="outline"
-          onClick={() => updateAppointmentStatus("pending_payment", "pending")}
+          onClick={() => updateAppointmentStatus("pagamento pendente", "pendente")}
           disabled={isPendingPayment}
         >
           <Clock className="h-3 w-3 mr-1" />
@@ -135,7 +135,7 @@ const AppointmentActions = ({
         <Button
           className={`${buttonBaseClass} bg-red-50 hover:bg-red-100 text-red-700 border-red-200`}
           variant="outline"
-          onClick={() => updateAppointmentStatus("cancelled", "undefined")}
+          onClick={() => updateAppointmentStatus("cancelado", "não definido")}
           disabled={isCancelled}
         >
           <XCircle className="h-3 w-3 mr-1" />
@@ -150,7 +150,7 @@ const AppointmentActions = ({
       <Button
         className={`${buttonBaseClass} bg-green-50 hover:bg-green-100 text-green-700 border-green-200`}
         variant="outline"
-        onClick={() => updateAppointmentStatus("completed", "paid", "dinheiro")}
+        onClick={() => updateAppointmentStatus("finalizado", "pago", "dinheiro")}
         disabled={isCompleted}
       >
         <Check className="h-3 w-3 mr-1" />
@@ -160,7 +160,7 @@ const AppointmentActions = ({
       <Button
         className={`${buttonBaseClass} bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200`}
         variant="outline"
-        onClick={() => updateAppointmentStatus("pending_payment", "pending")}
+        onClick={() => updateAppointmentStatus("pagamento pendente", "pendente")}
         disabled={isPendingPayment}
       >
         <Clock className="h-3 w-3 mr-1" />
@@ -170,7 +170,7 @@ const AppointmentActions = ({
       <Button
         className={`${buttonBaseClass} bg-red-50 hover:bg-red-100 text-red-700 border-red-200`}
         variant="outline"
-        onClick={() => updateAppointmentStatus("cancelled", "undefined")}
+        onClick={() => updateAppointmentStatus("cancelado", "não definido")}
         disabled={isCancelled}
       >
         <XCircle className="h-3 w-3 mr-1" />

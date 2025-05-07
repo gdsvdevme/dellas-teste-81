@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -87,28 +86,6 @@ export const useAppointmentForm = ({
           customPrices[service.service_id] = service.final_price;
         });
       }
-
-      // Map database payment_status to UI values
-      let uiPaymentStatus: PaymentStatus = "não definido";
-      if (appointment.payment_status === "paid") {
-        uiPaymentStatus = "pago";
-      } else if (appointment.payment_status === "pending") {
-        uiPaymentStatus = "pendente";
-      } else if (appointment.payment_status === "undefined" || appointment.payment_status === null) {
-        uiPaymentStatus = "não definido";
-      }
-
-      // Map database status to UI values
-      let uiStatus: AppointmentStatus = "agendado";
-      if (appointment.status === "scheduled") {
-        uiStatus = "agendado";
-      } else if (appointment.status === "cancelled") {
-        uiStatus = "cancelado";
-      } else if (appointment.status === "completed") {
-        uiStatus = "finalizado";
-      } else if (appointment.status === "pending_payment") {
-        uiStatus = "pagamento pendente";
-      }
       
       // For parent appointments, we use their recurrence settings
       // For child appointments, we don't show recurrence options
@@ -127,8 +104,8 @@ export const useAppointmentForm = ({
         startTime: startDate.getHours().toString().padStart(2, '0') + ":" + 
                   startDate.getMinutes().toString().padStart(2, '0'),
         notes: appointment.notes || "",
-        status: uiStatus,
-        paymentStatus: uiPaymentStatus,
+        status: appointment.status as AppointmentStatus, // Usar o status como está no banco
+        paymentStatus: appointment.payment_status as PaymentStatus, // Usar o status de pagamento como está no banco
         ...recurrenceSettings,
         customPrices: customPrices,
       });
@@ -138,6 +115,7 @@ export const useAppointmentForm = ({
   }, [appointment, selectedDate, form]);
 
   const calculateEndTime = (values: AppointmentFormValues) => {
+    // ... keep existing code (calculateEndTime function logic)
     const selectedServices = services.filter(service => 
       values.serviceIds.includes(service.id)
     );
@@ -175,24 +153,9 @@ export const useAppointmentForm = ({
         return total + (customPrice !== undefined ? customPrice : service.price);
       }, 0);
       
-      // Map UI status to database values
-      let dbStatus: string;
-      switch(values.status) {
-        case "agendado": dbStatus = "scheduled"; break;
-        case "cancelado": dbStatus = "cancelled"; break;
-        case "finalizado": dbStatus = "completed"; break;
-        case "pagamento pendente": dbStatus = "pending_payment"; break;
-        default: dbStatus = "scheduled";
-      }
-
-      // Map UI payment status to database values
-      let dbPaymentStatus: string;
-      switch(values.paymentStatus) {
-        case "pago": dbPaymentStatus = "paid"; break;
-        case "pendente": dbPaymentStatus = "pending"; break;
-        case "não definido": dbPaymentStatus = "undefined"; break;
-        default: dbPaymentStatus = "undefined";
-      }
+      // Usar os status diretamente do formulário em português
+      const dbStatus = values.status;
+      const dbPaymentStatus = values.paymentStatus;
       
       // Determine if this is a parent appointment being edited
       const isParentAppointment = appointment?.is_parent || false;

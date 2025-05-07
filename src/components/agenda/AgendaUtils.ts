@@ -94,22 +94,12 @@ export const formatDuration = (minutes: number) => {
   }
 };
 
-// Traduzir status do banco de dados para UI
+// Não precisamos mais das funções de tradução, já que os status estão em português no banco de dados
+// Mantendo apenas como identificadores para compatibilidade com código existente
 export const getDisplayStatus = (dbStatus: string) => {
-  switch (dbStatus) {
-    case "scheduled": return "agendado";
-    case "cancelled": return "cancelado";
-    case "completed": return "finalizado";
-    case "pending_payment": return "pagamento pendente";
-    default: return dbStatus;
-  }
+  return dbStatus;
 };
 
-// Traduzir status de pagamento do banco de dados para UI
 export const getDisplayPaymentStatus = (dbPaymentStatus: string) => {
-  switch (dbPaymentStatus) {
-    case "paid": return "pago";
-    case "pending": return "pendente";
-    default: return null;
-  }
+  return dbPaymentStatus;
 };
