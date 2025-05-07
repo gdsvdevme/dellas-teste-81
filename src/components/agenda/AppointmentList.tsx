@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { 
   format, 
@@ -318,7 +317,6 @@ interface AppointmentCardProps {
 }
 
 const AppointmentCard = ({ appointment, onClick, variant, showDate = false, onSuccess }: AppointmentCardProps) => {
-  const [showActions, setShowActions] = useState(false);
   const startTime = new Date(appointment.start_time);
   
   // Get proper status with translation from DB values
@@ -335,8 +333,6 @@ const AppointmentCard = ({ appointment, onClick, variant, showDate = false, onSu
     <div 
       className={`p-2 rounded-md shadow-sm cursor-pointer hover:bg-gray-50 transition-colors ${statusConfig?.color || ""}`}
       onClick={onClick}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
     >
       <div className="flex justify-between items-start">
         <div className="flex-1">
@@ -387,7 +383,8 @@ const AppointmentCard = ({ appointment, onClick, variant, showDate = false, onSu
               <span className="line-clamp-1">{statusConfig?.label}</span>
             </StatusBadge>
             
-            {showActions && (variant === "day" || variant === "month") && (
+            {/* Always show actions (removed hover conditional) */}
+            {(variant === "day" || variant === "month") && (
               <div className="ml-2" onClick={(e) => e.stopPropagation()}>
                 <AppointmentActions
                   appointmentId={appointment.id}
@@ -407,7 +404,6 @@ const AppointmentCard = ({ appointment, onClick, variant, showDate = false, onSu
 
 // Novo componente de cartão de agendamento mais compacto para visualização semanal
 const AppointmentCardCompact = ({ appointment, onClick, onSuccess }: { appointment: Appointment; onClick: () => void; onSuccess?: () => void }) => {
-  const [showActions, setShowActions] = useState(false);
   const startTime = new Date(appointment.start_time);
   const displayStatus = getDisplayStatus(appointment.status);
   const statusConfig = appointmentStatusMap[displayStatus];
@@ -429,8 +425,6 @@ const AppointmentCardCompact = ({ appointment, onClick, onSuccess }: { appointme
     <div
       className={`border-l-2 ${statusBorderClass} bg-white rounded-sm p-1 cursor-pointer hover:bg-gray-50 transition-colors text-xs relative`}
       onClick={onClick}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
     >
       <div className="font-semibold flex items-center">
         {format(startTime, "HH:mm")}
@@ -445,20 +439,19 @@ const AppointmentCardCompact = ({ appointment, onClick, onSuccess }: { appointme
         {StatusIcon && <StatusIcon className={`h-2.5 w-2.5 mr-1 ${statusConfig?.badgeVariant === 'success' ? 'text-green-600' : statusConfig?.badgeVariant === 'danger' ? 'text-red-600' : statusConfig?.badgeVariant === 'warning' ? 'text-yellow-600' : 'text-blue-600'}`} />}
       </div>
 
-      {showActions && (
-        <div 
-          className="absolute right-0 bottom-0 left-0 bg-white bg-opacity-90 p-0.5 rounded-b-sm flex justify-center"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <AppointmentActions
-            appointmentId={appointment.id}
-            currentStatus={appointment.status}
-            onSuccess={onSuccess}
-            size="xs"
-            variant="icons"
-          />
-        </div>
-      )}
+      {/* Always show action buttons */}
+      <div 
+        className="p-0.5 rounded-b-sm flex justify-center mt-2"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <AppointmentActions
+          appointmentId={appointment.id}
+          currentStatus={appointment.status}
+          onSuccess={onSuccess}
+          size="xs"
+          variant="icons"
+        />
+      </div>
     </div>
   );
 };

@@ -57,6 +57,7 @@ export type Database = {
           notes: string | null
           parent_appointment_id: string | null
           payment_date: string | null
+          payment_method: string | null
           payment_status: string
           recurrence: string | null
           recurrence_count: number | null
@@ -76,6 +77,7 @@ export type Database = {
           notes?: string | null
           parent_appointment_id?: string | null
           payment_date?: string | null
+          payment_method?: string | null
           payment_status?: string
           recurrence?: string | null
           recurrence_count?: number | null
@@ -95,6 +97,7 @@ export type Database = {
           notes?: string | null
           parent_appointment_id?: string | null
           payment_date?: string | null
+          payment_method?: string | null
           payment_status?: string
           recurrence?: string | null
           recurrence_count?: number | null
