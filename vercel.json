@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    // First, handle static files (CSS, JS, images, etc.)
+ 
     {
       "source": "/static/(.*)",
       "destination": "/static/$1"
@@ -9,7 +9,7 @@
       "source": "/assets/(.*)",
       "destination": "/assets/$1"
     },
-    // Then, fall back to index.html for all other routes
+
     {
       "source": "/(.*)",
       "destination": "/index.html"
