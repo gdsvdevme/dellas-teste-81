@@ -1,9 +1,9 @@
-
 import React from "react";
 import { Check, Clock, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AppointmentActionsProps {
   appointmentId: string;
@@ -20,6 +20,8 @@ const AppointmentActions = ({
   size = "default",
   variant = "full"
 }: AppointmentActionsProps) => {
+  const isMobile = useIsMobile();
+  
   const updateAppointmentStatus = async (
     status: string,
     paymentStatus: string,
@@ -47,11 +49,18 @@ const AppointmentActions = ({
 
       if (error) throw error;
 
-      toast.success("Status do agendamento atualizado com sucesso");
+      toast({
+        title: "Sucesso",
+        description: "Status do agendamento atualizado com sucesso",
+      });
       if (onSuccess) onSuccess();
     } catch (error: any) {
       console.error("Erro ao atualizar status:", error);
-      toast.error(`Erro ao atualizar: ${error.message || "Tente novamente"}`);
+      toast({
+        title: "Erro",
+        description: `Erro ao atualizar: ${error.message || "Tente novamente"}`,
+        variant: "destructive",
+      });
     }
   };
 
@@ -60,7 +69,17 @@ const AppointmentActions = ({
   const isCancelled = currentStatus === "cancelado";
   const isPendingPayment = currentStatus === "pagamento pendente";
   
+  // Ajuste automático do tamanho dos botões com base no tamanho da tela
   const getButtonSize = () => {
+    // Em dispositivos móveis, reduzimos ainda mais os tamanhos
+    if (isMobile) {
+      switch (size) {
+        case "xs": return "h-5 px-1 py-0 text-[10px]";
+        case "sm": return "h-6 px-1.5 py-0 text-xs";
+        default: return "h-7 px-2 py-0.5 text-xs";
+      }
+    }
+    // Tamanhos padrão para desktop
     switch (size) {
       case "xs": return "h-6 px-2 py-0 text-xs";
       case "sm": return "h-7 px-2 py-1 text-xs";
@@ -70,9 +89,10 @@ const AppointmentActions = ({
   
   const buttonBaseClass = `rounded-full ${getButtonSize()}`;
 
-  if (variant === "icons") {
+  // Em dispositivos móveis com a variante "icons", usamos um layout ainda mais compacto
+  if (variant === "icons" || (isMobile && variant === "compact")) {
     return (
-      <div className="flex items-center gap-1">
+      <div className={`flex ${isMobile ? 'items-center justify-center' : 'items-center'} gap-0.5`}>
         <Button
           className={buttonBaseClass}
           variant="outline"
@@ -81,7 +101,7 @@ const AppointmentActions = ({
           disabled={isCompleted}
           title="Finalizar (Pago)"
         >
-          <Check className="h-3 w-3 text-green-600" />
+          <Check className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} text-green-600`} />
         </Button>
         
         <Button
@@ -92,7 +112,7 @@ const AppointmentActions = ({
           disabled={isPendingPayment}
           title="Pagamento Pendente"
         >
-          <Clock className="h-3 w-3 text-yellow-600" />
+          <Clock className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} text-yellow-600`} />
         </Button>
         
         <Button
@@ -103,22 +123,27 @@ const AppointmentActions = ({
           disabled={isCancelled}
           title="Cancelar"
         >
-          <XCircle className="h-3 w-3 text-red-600" />
+          <XCircle className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} text-red-600`} />
         </Button>
       </div>
     );
   }
 
+  // Para dispositivos móveis com variante "full", usamos a variante "compact"
+  if (isMobile && variant === "full") {
+    variant = "compact";
+  }
+
   if (variant === "compact") {
     return (
-      <div className="flex items-center gap-1">
+      <div className={`flex ${isMobile ? 'flex-col items-stretch' : 'items-center'} gap-1`}>
         <Button
           className={`${buttonBaseClass} bg-green-50 hover:bg-green-100 text-green-700 border-green-200`}
           variant="outline"
           onClick={() => updateAppointmentStatus("finalizado", "pago", "dinheiro")}
           disabled={isCompleted}
         >
-          <Check className="h-3 w-3 mr-1" />
+          <Check className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
           Pago
         </Button>
         
@@ -128,7 +153,7 @@ const AppointmentActions = ({
           onClick={() => updateAppointmentStatus("pagamento pendente", "pendente")}
           disabled={isPendingPayment}
         >
-          <Clock className="h-3 w-3 mr-1" />
+          <Clock className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
           Pendente
         </Button>
         
@@ -138,7 +163,7 @@ const AppointmentActions = ({
           onClick={() => updateAppointmentStatus("cancelado", "não definido")}
           disabled={isCancelled}
         >
-          <XCircle className="h-3 w-3 mr-1" />
+          <XCircle className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
           Cancelar
         </Button>
       </div>
@@ -146,15 +171,15 @@ const AppointmentActions = ({
   }
 
   return (
-    <div className="flex items-center gap-1 flex-wrap">
+    <div className={`flex ${isMobile ? 'flex-col items-stretch' : 'items-center flex-wrap'} gap-1`}>
       <Button
         className={`${buttonBaseClass} bg-green-50 hover:bg-green-100 text-green-700 border-green-200`}
         variant="outline"
         onClick={() => updateAppointmentStatus("finalizado", "pago", "dinheiro")}
         disabled={isCompleted}
       >
-        <Check className="h-3 w-3 mr-1" />
-        Finalizado (Pago)
+        <Check className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
+        {isMobile ? "Pago" : "Finalizado (Pago)"}
       </Button>
       
       <Button
@@ -163,8 +188,8 @@ const AppointmentActions = ({
         onClick={() => updateAppointmentStatus("pagamento pendente", "pendente")}
         disabled={isPendingPayment}
       >
-        <Clock className="h-3 w-3 mr-1" />
-        Pagamento Pendente
+        <Clock className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
+        {isMobile ? "Pendente" : "Pagamento Pendente"}
       </Button>
       
       <Button
@@ -173,7 +198,7 @@ const AppointmentActions = ({
         onClick={() => updateAppointmentStatus("cancelado", "não definido")}
         disabled={isCancelled}
       >
-        <XCircle className="h-3 w-3 mr-1" />
+        <XCircle className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
         Cancelar
       </Button>
     </div>
