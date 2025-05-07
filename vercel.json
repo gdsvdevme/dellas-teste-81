@@ -1,11 +1,18 @@
 {
-  "routes": [
+  "rewrites": [
+    // First, handle static files (CSS, JS, images, etc.)
     {
-      "handle": "filesystem"
+      "source": "/static/(.*)",
+      "destination": "/static/$1"
     },
     {
-      "src": "/.*",
-      "dest": "/index.html"
+      "source": "/assets/(.*)",
+      "destination": "/assets/$1"
+    },
+    // Then, fall back to index.html for all other routes
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "trailingSlash": false,
