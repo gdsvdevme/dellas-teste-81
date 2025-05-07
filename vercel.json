@@ -1,10 +1,10 @@
 {
   "routes": [
-    // Arquivos estáticos
+
     { "src": "/static/(.*)", "dest": "/static/$1" },
     { "src": "/assets/(.*)", "dest": "/assets/$1" },
     
-    // Fallback para SPA (retorna index.html)
+    
     { "src": "/.*", "dest": "/index.html", "status": 200 }
   ]
 }
