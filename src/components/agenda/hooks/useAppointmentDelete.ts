@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 
 type AppointmentType = Database["public"]["Tables"]["appointments"]["Row"] & {
-  clients?: { name: string } | null;
+  clients?: { name: string; phone?: string } | null;
   appointment_services?: Array<{
     service_id: string;
     services: { name: string; duration: number };

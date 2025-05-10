@@ -24,7 +24,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 // Updated Appointment type to use final_price instead of price and include parent-child fields
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
-  clients: { name: string } | null;
+  clients: { name: string; phone?: string } | null;
   appointment_services: Array<{
     service_id: string;
     final_price: number;
@@ -85,7 +85,8 @@ const AppointmentList = ({ date, view, searchTerm = "" }: AppointmentListProps) 
         .select(`
           *,
           clients (
-            name
+            name,
+            phone
           ),
           appointment_services (
             service_id,
