@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Clock, Calendar as CalendarIcon, Trash2, Pencil, Repeat } from "lucide-react";
+import { Clock, Calendar as CalendarIcon, Trash2, Pencil, Repeat, Phone } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +29,7 @@ import { Progress } from "@/components/ui/progress";
 import AppointmentActions from "./AppointmentActions";
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
-  clients?: { name: string } | null;
+  clients?: { name: string; phone?: string } | null;
   appointment_services?: Array<{
     service_id: string;
     services: { name: string; duration: number };
@@ -142,6 +141,12 @@ const AppointmentDetails = ({
             {/* Client */}
             <div>
               <h3 className="text-lg font-medium">{appointment.clients?.name}</h3>
+              {appointment.clients?.phone && (
+                <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-1">
+                  <Phone className="h-4 w-4" />
+                  <span>{appointment.clients.phone}</span>
+                </div>
+              )}
             </div>
             
             {/* Date and time */}

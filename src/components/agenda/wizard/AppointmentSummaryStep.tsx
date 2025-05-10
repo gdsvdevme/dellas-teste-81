@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AppointmentStepProps } from "../AppointmentWizard";
 import { formatDatePtBr } from "@/lib/date-utils";
-import { Repeat } from "lucide-react";
+import { Repeat, Phone } from "lucide-react";
 
 const AppointmentSummaryStep = ({
   formValues,
@@ -64,7 +64,12 @@ const AppointmentSummaryStep = ({
         <div>
           <h4 className="font-medium text-sm text-gray-500">Cliente</h4>
           <p className="font-medium">{client?.name || "Cliente não selecionado"}</p>
-          <p className="text-sm">{client?.phone || "Telefone não informado"}</p>
+          {client?.phone && (
+            <p className="text-sm flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5" />
+              {client.phone}
+            </p>
+          )}
         </div>
 
         {/* Services info */}
