@@ -1,7 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { i18n } from "@/lib/i18n";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import {
   Dialog,
@@ -12,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 import AppointmentClientSelect from "./modal/AppointmentClientSelect";
 import AppointmentServiceSelect from "./modal/AppointmentServiceSelect";
@@ -28,7 +31,7 @@ type Service = Database["public"]["Tables"]["services"]["Row"];
 
 // Updated Appointment type with final_price instead of price
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"] & {
-  clients?: { name: string } | null;
+  clients?: { name: string; phone?: string } | null;
   appointment_services?: Array<{
     service_id: string;
     final_price: number;
@@ -55,6 +58,7 @@ const AppointmentModal = ({
   const [services, setServices] = useState<Service[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
   const [loadingServices, setLoadingServices] = useState(false);
+  const isMobile = useIsMobile();
 
   // Use the custom hook for form handling
   const { form, submitting, onSubmit } = useAppointmentForm({
@@ -113,66 +117,71 @@ const AppointmentModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] rounded-2xl border-salon-secondary/30 p-0 overflow-hidden">
-        <DialogHeader className="bg-gradient-to-r from-salon-primary/20 to-salon-rose/20 p-6">
-          <DialogTitle className="font-playfair text-2xl">
+      <DialogContent 
+        className={`sm:max-w-[500px] rounded-2xl border-salon-secondary/30 p-0 overflow-hidden
+                   ${isMobile ? 'max-w-[90vw] max-h-[85vh]' : 'max-h-[90vh]'}`}
+      >
+        <DialogHeader className="bg-gradient-to-r from-salon-primary/20 to-salon-rose/20 p-4 sm:p-6 sticky top-0 z-50">
+          <DialogTitle className="font-playfair text-xl sm:text-2xl">
             {appointment ? "Editar Agendamento" : "Novo Agendamento"}
           </DialogTitle>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={onSubmit} className="space-y-5 p-6">
-            {/* Client */}
-            <AppointmentClientSelect 
-              clients={clients} 
-              loadingClients={loadingClients} 
-              form={form} 
-            />
+        <ScrollArea className="max-h-[calc(85vh-120px)]">
+          <Form {...form}>
+            <form onSubmit={onSubmit} className="space-y-4 p-4 sm:p-6">
+              {/* Client */}
+              <AppointmentClientSelect 
+                clients={clients} 
+                loadingClients={loadingClients} 
+                form={form} 
+              />
 
-            {/* Services */}
-            <AppointmentServiceSelect 
-              services={services} 
-              form={form} 
-            />
+              {/* Services */}
+              <AppointmentServiceSelect 
+                services={services} 
+                form={form} 
+              />
 
-            {/* Date */}
-            <AppointmentDateSelect form={form} />
+              {/* Date */}
+              <AppointmentDateSelect form={form} />
 
-            {/* Time */}
-            <AppointmentTimeSelect form={form} />
+              {/* Time */}
+              <AppointmentTimeSelect form={form} />
 
-            {/* Notes */}
-            <AppointmentNotesField form={form} />
+              {/* Notes */}
+              <AppointmentNotesField form={form} />
 
-            {/* Status and Payment Status */}
-            <div className="grid grid-cols-2 gap-4">
-              <AppointmentStatusSelect form={form} />
-              <AppointmentPaymentStatusSelect form={form} />
-            </div>
+              {/* Status and Payment Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <AppointmentStatusSelect form={form} />
+                <AppointmentPaymentStatusSelect form={form} />
+              </div>
 
-            <DialogFooter className="mt-6 pt-4 border-t border-salon-secondary/20">
-              <Button
-                type="button"
-                variant="salon-outline"
-                onClick={() => onOpenChange(false)}
-              >
-                {i18n.system.cancel}
-              </Button>
-              <Button type="submit" variant="salon" disabled={submitting}>
-                {submitting ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
-                    {i18n.system.loading}
-                  </div>
-                ) : appointment ? (
-                  i18n.system.save
-                ) : (
-                  "Agendar"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+              <DialogFooter className="mt-6 pt-4 border-t border-salon-secondary/20">
+                <Button
+                  type="button"
+                  variant="salon-outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  {i18n.system.cancel}
+                </Button>
+                <Button type="submit" variant="salon" disabled={submitting}>
+                  {submitting ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                      {i18n.system.loading}
+                    </div>
+                  ) : appointment ? (
+                    i18n.system.save
+                  ) : (
+                    "Agendar"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
