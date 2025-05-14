@@ -65,10 +65,20 @@ export const usePaymentManagement = () => {
   });
 
   // Handle payment
-  const handlePayment = (appointment: Appointment, method?: string) => {
+  const handlePayment = (
+    appointment: Appointment, 
+    method?: string, 
+    servicePrices?: Record<string, number>
+  ) => {
     // Remove from selected if it's selected
     if (selectedAppointmentIds.includes(appointment.id)) {
       setSelectedAppointmentIds(prev => prev.filter(id => id !== appointment.id));
+    }
+    
+    // Calculate final price from service prices if provided
+    let finalPrice = appointment.final_price;
+    if (servicePrices) {
+      finalPrice = Object.values(servicePrices).reduce((sum, price) => sum + price, 0);
     }
     
     updateAppointmentMutation.mutate({
@@ -77,8 +87,7 @@ export const usePaymentManagement = () => {
         status: "finalizado", 
         payment_status: "pago",
         payment_method: method || paymentMethod,
-        // Keep the same final_price if it already exists
-        ...(appointment.final_price && { final_price: appointment.final_price })
+        final_price: finalPrice
       }
     });
   };
@@ -110,14 +119,14 @@ export const usePaymentManagement = () => {
       selectedAppointmentIds.includes(apt.id)
     );
     
-    selectedAppointments.forEach(appointment => {
+    selectedAppointments.forEach(apt => {
       updateAppointmentMutation.mutate({
-        id: appointment.id,
+        id: apt.id,
         values: { 
           status: "finalizado", 
           payment_status: "pago",
           payment_method: method || paymentMethod,
-          ...(appointment.final_price && { final_price: appointment.final_price })
+          ...(apt.final_price && { final_price: apt.final_price })
         }
       });
     });
