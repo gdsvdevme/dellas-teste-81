@@ -1,9 +1,11 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { Check, Clock, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
+import PaymentServicesModal from "./modal/PaymentServicesModal";
 
 interface AppointmentActionsProps {
   appointmentId: string;
@@ -21,6 +23,7 @@ const AppointmentActions = ({
   variant = "full"
 }: AppointmentActionsProps) => {
   const isMobile = useIsMobile();
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   
   const updateAppointmentStatus = async (
     status: string,
@@ -64,6 +67,11 @@ const AppointmentActions = ({
     }
   };
 
+  // Handle opening payment modal instead of direct status update
+  const handlePaymentClick = () => {
+    setIsPaymentModalOpen(true);
+  };
+
   // Determine if specific actions should be disabled based on current status
   const isCompleted = currentStatus === "finalizado";
   const isCancelled = currentStatus === "cancelado";
@@ -92,40 +100,49 @@ const AppointmentActions = ({
   // Em dispositivos móveis com a variante "icons", usamos um layout ainda mais compacto
   if (variant === "icons" || (isMobile && variant === "compact")) {
     return (
-      <div className={`flex ${isMobile ? 'items-center justify-center' : 'items-center'} gap-0.5`}>
-        <Button
-          className={buttonBaseClass}
-          variant="outline"
-          size="icon"
-          onClick={() => updateAppointmentStatus("finalizado", "pago", "dinheiro")}
-          disabled={isCompleted}
-          title="Finalizar (Pago)"
-        >
-          <Check className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} text-green-600`} />
-        </Button>
+      <>
+        <div className={`flex ${isMobile ? 'items-center justify-center' : 'items-center'} gap-0.5`}>
+          <Button
+            className={buttonBaseClass}
+            variant="outline"
+            size="icon"
+            onClick={handlePaymentClick}
+            disabled={isCompleted}
+            title="Finalizar (Pago)"
+          >
+            <Check className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} text-green-600`} />
+          </Button>
+          
+          <Button
+            className={buttonBaseClass}
+            variant="outline"
+            size="icon"
+            onClick={() => updateAppointmentStatus("pagamento pendente", "pendente")}
+            disabled={isPendingPayment}
+            title="Pagamento Pendente"
+          >
+            <Clock className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} text-yellow-600`} />
+          </Button>
+          
+          <Button
+            className={buttonBaseClass}
+            variant="outline"
+            size="icon"
+            onClick={() => updateAppointmentStatus("cancelado", "não definido")}
+            disabled={isCancelled}
+            title="Cancelar"
+          >
+            <XCircle className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} text-red-600`} />
+          </Button>
+        </div>
         
-        <Button
-          className={buttonBaseClass}
-          variant="outline"
-          size="icon"
-          onClick={() => updateAppointmentStatus("pagamento pendente", "pendente")}
-          disabled={isPendingPayment}
-          title="Pagamento Pendente"
-        >
-          <Clock className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} text-yellow-600`} />
-        </Button>
-        
-        <Button
-          className={buttonBaseClass}
-          variant="outline"
-          size="icon"
-          onClick={() => updateAppointmentStatus("cancelado", "não definido")}
-          disabled={isCancelled}
-          title="Cancelar"
-        >
-          <XCircle className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} text-red-600`} />
-        </Button>
-      </div>
+        <PaymentServicesModal 
+          open={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          appointmentId={appointmentId}
+          onSuccess={onSuccess || (() => {})}
+        />
+      </>
     );
   }
 
@@ -136,15 +153,60 @@ const AppointmentActions = ({
 
   if (variant === "compact") {
     return (
-      <div className={`flex ${isMobile ? 'flex-col items-stretch' : 'items-center'} gap-1`}>
+      <>
+        <div className={`flex ${isMobile ? 'flex-col items-stretch' : 'items-center'} gap-1`}>
+          <Button
+            className={`${buttonBaseClass} bg-green-50 hover:bg-green-100 text-green-700 border-green-200`}
+            variant="outline"
+            onClick={handlePaymentClick}
+            disabled={isCompleted}
+          >
+            <Check className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
+            Pago
+          </Button>
+          
+          <Button
+            className={`${buttonBaseClass} bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200`}
+            variant="outline"
+            onClick={() => updateAppointmentStatus("pagamento pendente", "pendente")}
+            disabled={isPendingPayment}
+          >
+            <Clock className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
+            Pendente
+          </Button>
+          
+          <Button
+            className={`${buttonBaseClass} bg-red-50 hover:bg-red-100 text-red-700 border-red-200`}
+            variant="outline"
+            onClick={() => updateAppointmentStatus("cancelado", "não definido")}
+            disabled={isCancelled}
+          >
+            <XCircle className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
+            Cancelar
+          </Button>
+        </div>
+        
+        <PaymentServicesModal 
+          open={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          appointmentId={appointmentId}
+          onSuccess={onSuccess || (() => {})}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className={`flex ${isMobile ? 'flex-col items-stretch' : 'items-center flex-wrap'} gap-1`}>
         <Button
           className={`${buttonBaseClass} bg-green-50 hover:bg-green-100 text-green-700 border-green-200`}
           variant="outline"
-          onClick={() => updateAppointmentStatus("finalizado", "pago", "dinheiro")}
+          onClick={handlePaymentClick}
           disabled={isCompleted}
         >
           <Check className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
-          Pago
+          {isMobile ? "Pago" : "Finalizado (Pago)"}
         </Button>
         
         <Button
@@ -154,7 +216,7 @@ const AppointmentActions = ({
           disabled={isPendingPayment}
         >
           <Clock className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
-          Pendente
+          {isMobile ? "Pendente" : "Pagamento Pendente"}
         </Button>
         
         <Button
@@ -167,41 +229,14 @@ const AppointmentActions = ({
           Cancelar
         </Button>
       </div>
-    );
-  }
-
-  return (
-    <div className={`flex ${isMobile ? 'flex-col items-stretch' : 'items-center flex-wrap'} gap-1`}>
-      <Button
-        className={`${buttonBaseClass} bg-green-50 hover:bg-green-100 text-green-700 border-green-200`}
-        variant="outline"
-        onClick={() => updateAppointmentStatus("finalizado", "pago", "dinheiro")}
-        disabled={isCompleted}
-      >
-        <Check className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
-        {isMobile ? "Pago" : "Finalizado (Pago)"}
-      </Button>
       
-      <Button
-        className={`${buttonBaseClass} bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200`}
-        variant="outline"
-        onClick={() => updateAppointmentStatus("pagamento pendente", "pendente")}
-        disabled={isPendingPayment}
-      >
-        <Clock className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
-        {isMobile ? "Pendente" : "Pagamento Pendente"}
-      </Button>
-      
-      <Button
-        className={`${buttonBaseClass} bg-red-50 hover:bg-red-100 text-red-700 border-red-200`}
-        variant="outline"
-        onClick={() => updateAppointmentStatus("cancelado", "não definido")}
-        disabled={isCancelled}
-      >
-        <XCircle className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
-        Cancelar
-      </Button>
-    </div>
+      <PaymentServicesModal 
+        open={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        appointmentId={appointmentId}
+        onSuccess={onSuccess || (() => {})}
+      />
+    </>
   );
 };
 
