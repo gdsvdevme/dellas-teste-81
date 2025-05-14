@@ -48,6 +48,7 @@ const AppointmentActions = ({
         .single();
       
       if (error) throw error;
+      console.log("Detalhes do agendamento:", data);
       setSelectedAppointment(data);
       setIsPaymentDialogOpen(true);
     } catch (error: any) {
@@ -88,6 +89,7 @@ const AppointmentActions = ({
           (sum, price) => sum + price, 0
         );
         updateData.final_price = totalPrice;
+        console.log("Preço total calculado:", totalPrice);
       }
 
       const { error } = await supabase
@@ -114,6 +116,7 @@ const AppointmentActions = ({
 
   // Handler for payment confirmation from the dialog
   const handlePaymentConfirm = (appointment: any, method: string, servicePrices: Record<string, number>) => {
+    console.log("Confirmando pagamento com preços:", servicePrices);
     updateAppointmentStatus("finalizado", "pago", method, servicePrices);
   };
 
@@ -184,7 +187,10 @@ const AppointmentActions = ({
         {selectedAppointment && (
           <DialogPaymentServices
             open={isPaymentDialogOpen}
-            onClose={() => setIsPaymentDialogOpen(false)}
+            onClose={() => {
+              setIsPaymentDialogOpen(false);
+              setSelectedAppointment(null);
+            }}
             appointment={selectedAppointment}
             onConfirmPayment={handlePaymentConfirm}
           />
@@ -236,7 +242,10 @@ const AppointmentActions = ({
         {selectedAppointment && (
           <DialogPaymentServices
             open={isPaymentDialogOpen}
-            onClose={() => setIsPaymentDialogOpen(false)}
+            onClose={() => {
+              setIsPaymentDialogOpen(false);
+              setSelectedAppointment(null);
+            }}
             appointment={selectedAppointment}
             onConfirmPayment={handlePaymentConfirm}
           />
@@ -282,7 +291,10 @@ const AppointmentActions = ({
       {selectedAppointment && (
         <DialogPaymentServices
           open={isPaymentDialogOpen}
-          onClose={() => setIsPaymentDialogOpen(false)}
+          onClose={() => {
+            setIsPaymentDialogOpen(false);
+            setSelectedAppointment(null);
+          }}
           appointment={selectedAppointment}
           onConfirmPayment={handlePaymentConfirm}
         />
