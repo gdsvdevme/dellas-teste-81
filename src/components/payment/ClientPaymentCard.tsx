@@ -13,7 +13,6 @@ import { format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Appointment } from "./PendingPaymentsByClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DialogPaymentServices } from "./DialogPaymentServices";
 
 interface ClientPaymentCardProps {
   clientId: string;
@@ -23,7 +22,7 @@ interface ClientPaymentCardProps {
   totalDue: number;
   isOpen: boolean;
   onToggleOpen: () => void;
-  onPayment: (appointment: Appointment, method?: string, servicePrices?: Record<string, number>) => void;
+  onPayment: (appointment: Appointment, method?: string) => void;
   onPayAll: (clientId: string, appointments: Appointment[], method?: string) => void;
   onEdit: (appointment: Appointment) => void;
   selectedIds: string[];
@@ -51,8 +50,6 @@ const ClientPaymentCard: React.FC<ClientPaymentCardProps> = ({
   const [editPrices, setEditPrices] = useState<Record<string, boolean>>({});
   const [priceInputs, setPriceInputs] = useState<Record<string, number>>({});
   const [paymentMethod, setPaymentMethod] = useState<string>("dinheiro");
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [selectedAppointmentForPayment, setSelectedAppointmentForPayment] = useState<Appointment | null>(null);
 
   // Inicializa os valores de preço ao expandir o card
   const handleToggle = () => {
@@ -89,17 +86,6 @@ const ClientPaymentCard: React.FC<ClientPaymentCardProps> = ({
         onToggleSelect(apt.id, checked);
       }
     });
-  };
-
-  // Abre o diálogo de detalhes de pagamento
-  const openPaymentDialog = (appointment: Appointment) => {
-    setSelectedAppointmentForPayment(appointment);
-    setIsPaymentDialogOpen(true);
-  };
-
-  // Processa o pagamento após confirmação no diálogo
-  const handlePaymentConfirm = (appointment: Appointment, method: string, servicePrices: Record<string, number>) => {
-    onPayment(appointment, method, servicePrices);
   };
 
   // Calcula o total selecionado
@@ -252,13 +238,13 @@ const ClientPaymentCard: React.FC<ClientPaymentCardProps> = ({
                     </Button>
                     
                     <div className="flex gap-2">
-                      {/* Botão de pagamento rápido alterado para abrir o diálogo */}
+                      {/* Botão de pagamento rápido */}
                       <Button 
                         size="sm" 
                         variant="outline" 
                         className="text-xs h-8 p-1"
-                        onClick={() => openPaymentDialog(appointment)}
-                        title="Detalhes do Pagamento"
+                        onClick={() => onPayment(appointment)}
+                        title="Pagamento Rápido"
                       >
                         <Check className="h-3.5 w-3.5" />
                       </Button>
@@ -300,8 +286,8 @@ const ClientPaymentCard: React.FC<ClientPaymentCardProps> = ({
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => openPaymentDialog(appointment)}>
-                              Continuar
+                            <AlertDialogAction onClick={() => onPayment(appointment, paymentMethod)}>
+                              Confirmar
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -442,19 +428,6 @@ const ClientPaymentCard: React.FC<ClientPaymentCardProps> = ({
             </div>
           )}
         </CardContent>
-      )}
-
-      {/* Dialog for payment details */}
-      {selectedAppointmentForPayment && (
-        <DialogPaymentServices
-          open={isPaymentDialogOpen}
-          onClose={() => {
-            setIsPaymentDialogOpen(false);
-            setSelectedAppointmentForPayment(null);
-          }}
-          appointment={selectedAppointmentForPayment}
-          onConfirmPayment={handlePaymentConfirm}
-        />
       )}
     </Card>
   );
