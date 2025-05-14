@@ -12,7 +12,6 @@ type ServiceDetail = {
   id: string;
   name: string;
   price: number;
-  service_id: string;
 };
 
 interface DialogPaymentServicesProps {
@@ -34,11 +33,10 @@ export const DialogPaymentServices = ({
   const isMobile = useIsMobile();
 
   // Extract services from appointment
-  const services: ServiceDetail[] = appointment.appointment_services?.map(as => ({
-    id: as.service_id,
+  const services: ServiceDetail[] = appointment.appointment_services?.map((as, index) => ({
+    id: `service-${index}`, // Generate a unique ID for each service
     name: as.service?.name || "Serviço",
     price: appointment.final_price || 0, // Default from appointment's final price
-    service_id: as.service_id
   })) || [];
 
   // Initialize service prices
