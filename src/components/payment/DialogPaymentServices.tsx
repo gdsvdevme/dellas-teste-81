@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Appointment } from "./PendingPaymentsByClient";
+import { toast } from "sonner";
 
 type ServiceDetail = {
   id: string;
@@ -29,6 +30,7 @@ export const DialogPaymentServices = ({
 }: DialogPaymentServicesProps) => {
   const [paymentMethod, setPaymentMethod] = useState<string>("dinheiro");
   const [servicePrices, setServicePrices] = useState<Record<string, number>>({});
+  const [serviceInputValues, setServiceInputValues] = useState<Record<string, string>>({});
   const [totalValue, setTotalValue] = useState<number>(0);
   const isMobile = useIsMobile();
 
@@ -39,10 +41,11 @@ export const DialogPaymentServices = ({
     price: appointment.final_price || 0, // Default from appointment's final price
   })) || [];
 
-  // Initialize service prices
+  // Initialize service prices and input values
   useEffect(() => {
     if (open && appointment) {
       const initialPrices: Record<string, number> = {};
+      const initialInputValues: Record<string, string> = {};
       
       // If we have multiple services, divide the total price equally by default
       const serviceCount = services.length;
@@ -52,18 +55,28 @@ export const DialogPaymentServices = ({
         
       services.forEach(service => {
         initialPrices[service.id] = pricePerService;
+        initialInputValues[service.id] = pricePerService.toString();
       });
       
       setServicePrices(initialPrices);
+      setServiceInputValues(initialInputValues);
       setTotalValue(appointment.final_price || 0);
     }
   }, [open, appointment, services]);
 
-  // Handle price change for a service
-  const handlePriceChange = (serviceId: string, value: string) => {
-    const numValue = parseFloat(value) || 0;
-    const updatedPrices = { ...servicePrices, [serviceId]: numValue };
+  // Handle input change for a service
+  const handleInputChange = (serviceId: string, value: string) => {
+    // Update the input value state (string)
+    setServiceInputValues(prev => ({
+      ...prev,
+      [serviceId]: value
+    }));
     
+    // Convert to number for price calculation
+    const numValue = parseFloat(value) || 0;
+    
+    // Update the actual numeric prices
+    const updatedPrices = { ...servicePrices, [serviceId]: numValue };
     setServicePrices(updatedPrices);
     
     // Recalculate total
@@ -72,6 +85,11 @@ export const DialogPaymentServices = ({
   };
 
   const handleConfirm = () => {
+    if (totalValue <= 0) {
+      toast("O valor total precisa ser maior que zero");
+      return;
+    }
+    
     onConfirmPayment(appointment, paymentMethod, servicePrices);
     onClose();
   };
@@ -97,11 +115,10 @@ export const DialogPaymentServices = ({
                       <div className="flex items-center gap-2">
                         <span className="text-sm">R$</span>
                         <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={servicePrices[service.id] || 0}
-                          onChange={(e) => handlePriceChange(service.id, e.target.value)}
+                          type="text"
+                          inputMode="decimal"
+                          value={serviceInputValues[service.id] || ''}
+                          onChange={(e) => handleInputChange(service.id, e.target.value)}
                           className="w-full text-right"
                         />
                       </div>
