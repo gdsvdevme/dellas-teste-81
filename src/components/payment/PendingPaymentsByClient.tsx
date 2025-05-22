@@ -1,3 +1,4 @@
+
 import React from "react";
 import ClientPaymentCard from "./ClientPaymentCard";
 
@@ -9,7 +10,7 @@ export type Appointment = {
   end_time: string;
   status: string;
   payment_status: string;
-  payment_method?: string;  // Ensure this is defined here too
+  payment_method?: string;  
   final_price: number | null;
   notes: string | null;
   client: {

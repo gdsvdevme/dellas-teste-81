@@ -12,6 +12,7 @@ import Agenda from "@/pages/Agenda";
 import Auth from "@/pages/Auth";
 import NotFound from "./pages/NotFound";
 import Pagamentos from "./pages/Pagamentos";
+import ClientePagamento from "./pages/ClientePagamento";
 import Clientes from "./pages/Clientes";
 
 // Página temporária para rotas ainda não implementadas
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/estoque" element={<PlaceholderPage title="Estoque" />} />
               <Route path="/financas" element={<PlaceholderPage title="Finanças" />} />
               <Route path="/pagamentos" element={<Pagamentos />} />
+              <Route path="/pagamentos/cliente/:clientId" element={<ClientePagamento />} />
               <Route path="/relatorios" element={<PlaceholderPage title="Relatórios" />} />
               <Route path="/configuracoes" element={<PlaceholderPage title="Configurações" />} />
             </Route>
