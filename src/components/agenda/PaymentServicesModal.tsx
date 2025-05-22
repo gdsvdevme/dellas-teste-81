@@ -31,13 +31,17 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
   useEffect(() => {
     if (open && appointmentId) {
       fetchAppointmentServices();
+    } else {
+      // Limpar os estados quando o modal fecha
+      setServices([]);
+      setPriceInputs({});
     }
   }, [open, appointmentId]);
   
   const fetchAppointmentServices = async () => {
     setLoading(true);
     try {
-      // Buscar os serviços do agendamento
+      // Buscar os serviços do agendamento, garantindo que não há duplicações
       const { data, error } = await supabase
         .from('appointment_services')
         .select(`
@@ -46,7 +50,8 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
             id,
             name,
             price
-          )
+          ),
+          final_price
         `)
         .eq('appointment_id', appointmentId);
 
@@ -56,10 +61,10 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
       const formattedServices = data.map(item => ({
         id: item.id,
         name: item.service.name,
-        price: item.service.price
+        price: item.final_price || item.service.price
       }));
       
-      // Initialize price inputs
+      // Initialize price inputs with existing final_price or default price
       const initialPriceInputs: {[key: string]: string} = {};
       formattedServices.forEach(service => {
         initialPriceInputs[service.id] = service.price.toString();
@@ -81,10 +86,13 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
 
   // Handle price change for a service
   const handlePriceChange = (id: string, value: string) => {
-    setPriceInputs(prev => ({
-      ...prev,
-      [id]: value
-    }));
+    // Garantir que o valor é numérico
+    if (value === '' || !isNaN(parseFloat(value))) {
+      setPriceInputs(prev => ({
+        ...prev,
+        [id]: value
+      }));
+    }
   };
 
   // Calculate total price
@@ -101,21 +109,40 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
     setIsSubmitting(true);
     
     try {
-      // 1. Atualizar o status do agendamento como finalizado e pago
+      // Validar valores de entrada
+      for (const service of services) {
+        const price = parseFloat(priceInputs[service.id]);
+        if (isNaN(price) || price < 0) {
+          throw new Error(`Valor inválido para o serviço ${service.name}`);
+        }
+      }
+
+      // Atualizar preços finais dos serviços
+      for (const service of services) {
+        const { error } = await supabase
+          .from('appointment_services')
+          .update({
+            final_price: parseFloat(priceInputs[service.id])
+          })
+          .eq('id', service.id);
+        
+        if (error) throw error;
+      }
+
+      // Atualizar o status do agendamento como finalizado e pago
+      const paymentDate = new Date().toISOString();
       const { error: appointmentError } = await supabase
         .from('appointments')
         .update({
           status: "finalizado",
           payment_status: "pago",
           payment_method: paymentMethod,
-          final_price: totalPrice
+          final_price: totalPrice,
+          payment_date: paymentDate
         })
         .eq('id', appointmentId);
 
       if (appointmentError) throw appointmentError;
-
-      // 2. Opcional: atualizar os preços dos serviços se necessário
-      // Isso dependerá da estrutura do banco de dados
 
       toast({
         title: "Pagamento finalizado",
@@ -184,6 +211,7 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
                 <span className="font-medium">Método de Pagamento</span>
                 <Select
                   defaultValue="dinheiro"
+                  value={paymentMethod}
                   onValueChange={setPaymentMethod}
                 >
                   <SelectTrigger className="w-[180px]">
