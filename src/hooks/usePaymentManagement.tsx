@@ -47,13 +47,44 @@ export const usePaymentManagement = () => {
 
   // Mutation for updating appointment status
   const updateAppointmentMutation = useMutation({
-    mutationFn: async ({ id, values }: { id: string, values: { status: string, payment_status: string, final_price?: number, payment_method?: string } }) => {
+    mutationFn: async ({ id, values, updateRecurringAppointments = false }: { 
+      id: string, 
+      values: { 
+        status: string, 
+        payment_status: string, 
+        final_price?: number, 
+        payment_method?: string,
+        notes?: string | null
+      },
+      updateRecurringAppointments?: boolean
+    }) => {
+      // First, get the appointment to check if it's part of a recurring series
+      const { data: appointment, error: fetchError } = await supabase
+        .from('appointments')
+        .select('recurrence_group_id')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update the specific appointment
       const { error } = await supabase
         .from('appointments')
         .update(values)
         .eq('id', id);
 
       if (error) throw error;
+
+      // If this is part of a recurring series and we want to update all in the series
+      if (updateRecurringAppointments && appointment.recurrence_group_id) {
+        const { error: recurringError } = await supabase
+          .from('appointments')
+          .update(values)
+          .eq('recurrence_group_id', appointment.recurrence_group_id)
+          .neq('id', id);
+
+        if (recurringError) throw recurringError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
@@ -65,7 +96,7 @@ export const usePaymentManagement = () => {
   });
 
   // Handle payment
-  const handlePayment = (appointment: Appointment, method?: string) => {
+  const handlePayment = (appointment: Appointment, method?: string, updateRecurring = false) => {
     // Remove from selected if it's selected
     if (selectedAppointmentIds.includes(appointment.id)) {
       setSelectedAppointmentIds(prev => prev.filter(id => id !== appointment.id));
@@ -79,7 +110,8 @@ export const usePaymentManagement = () => {
         payment_method: method || paymentMethod,
         // Keep the same final_price if it already exists
         ...(appointment.final_price && { final_price: appointment.final_price })
-      }
+      },
+      updateRecurringAppointments: updateRecurring
     });
   };
 

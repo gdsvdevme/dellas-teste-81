@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Check, Clock, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ interface AppointmentActionsProps {
   onSuccess?: () => void;
   size?: "default" | "sm" | "xs";
   variant?: "icons" | "full" | "compact";
+  isRecurring?: boolean;
 }
 
 const AppointmentActions = ({
@@ -19,7 +21,8 @@ const AppointmentActions = ({
   currentStatus,
   onSuccess,
   size = "default",
-  variant = "full"
+  variant = "full",
+  isRecurring = false
 }: AppointmentActionsProps) => {
   const isMobile = useIsMobile();
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);

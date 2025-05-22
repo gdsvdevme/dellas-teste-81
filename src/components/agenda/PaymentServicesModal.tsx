@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface AppointmentService {
   id: string;
@@ -26,17 +29,56 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
   const [paymentMethod, setPaymentMethod] = useState<string>("dinheiro");
   const [priceInputs, setPriceInputs] = useState<{[key: string]: string}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [payOnlyCurrentAppointment, setPayOnlyCurrentAppointment] = useState(true);
+  const [discount, setDiscount] = useState<string>("");
+  const [paymentNotes, setPaymentNotes] = useState<string>("");
   
-  // Fetch appointment services
+  // Fetch appointment services and check if it's recurring
   useEffect(() => {
     if (open && appointmentId) {
       fetchAppointmentServices();
+      checkIfRecurringAppointment();
     } else {
       // Limpar os estados quando o modal fecha
       setServices([]);
       setPriceInputs({});
+      setDiscount("");
+      setPaymentNotes("");
+      setPayOnlyCurrentAppointment(true);
     }
   }, [open, appointmentId]);
+  
+  const checkIfRecurringAppointment = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('recurrence_group_id')
+        .eq('id', appointmentId)
+        .single();
+      
+      if (error) throw error;
+      
+      if (data.recurrence_group_id) {
+        // Check if there are other appointments in this group
+        const { data: relatedAppointments, error: relatedError } = await supabase
+          .from('appointments')
+          .select('id')
+          .eq('recurrence_group_id', data.recurrence_group_id)
+          .neq('id', appointmentId);
+        
+        if (relatedError) throw relatedError;
+        
+        // If there are other appointments in the same recurrence group
+        setIsRecurring(relatedAppointments.length > 0);
+      } else {
+        setIsRecurring(false);
+      }
+    } catch (error) {
+      console.error("Error checking if appointment is recurring:", error);
+      setIsRecurring(false);
+    }
+  };
   
   const fetchAppointmentServices = async () => {
     setLoading(true);
@@ -95,11 +137,23 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
     }
   };
 
-  // Calculate total price
-  const totalPrice = services.reduce((sum, service) => {
-    const price = parseFloat(priceInputs[service.id]) || 0;
-    return sum + price;
-  }, 0);
+  // Calculate total price with discount
+  const calculateFinalPrice = () => {
+    const subtotal = services.reduce((sum, service) => {
+      const price = parseFloat(priceInputs[service.id]) || 0;
+      return sum + price;
+    }, 0);
+    
+    // Apply discount if present
+    if (discount && !isNaN(parseFloat(discount))) {
+      const discountValue = parseFloat(discount);
+      return Math.max(0, subtotal - discountValue);
+    }
+    
+    return subtotal;
+  };
+
+  const totalPrice = calculateFinalPrice();
 
   // Complete payment
   const handleCompletePayment = async () => {
@@ -117,8 +171,7 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
         }
       }
 
-      // Atualizar preços finais dos serviços - Importante: usar UPSERT em vez de INSERT
-      // para evitar violação da restrição de unicidade
+      // Atualizar preços finais dos serviços
       for (const service of services) {
         const { error } = await supabase
           .from('appointment_services')
@@ -130,20 +183,56 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
         if (error) throw error;
       }
 
+      // Get appointment details including recurrence group
+      const { data: appointmentData, error: appointmentFetchError } = await supabase
+        .from('appointments')
+        .select('recurrence_group_id')
+        .eq('id', appointmentId)
+        .single();
+      
+      if (appointmentFetchError) throw appointmentFetchError;
+      
       // Atualizar o status do agendamento como finalizado e pago
       const paymentDate = new Date().toISOString();
+      const updateData = {
+        status: "finalizado",
+        payment_status: "pago",
+        payment_method: paymentMethod,
+        final_price: totalPrice,
+        payment_date: paymentDate,
+        notes: paymentNotes ? (paymentNotes.trim() !== "" ? paymentNotes : null) : null
+      };
+      
+      // Update the current appointment
       const { error: appointmentError } = await supabase
         .from('appointments')
-        .update({
-          status: "finalizado",
-          payment_status: "pago",
-          payment_method: paymentMethod,
-          final_price: totalPrice,
-          payment_date: paymentDate
-        })
+        .update(updateData)
         .eq('id', appointmentId);
 
       if (appointmentError) throw appointmentError;
+      
+      // If this is a recurring appointment and we need to update others in the series
+      if (isRecurring && !payOnlyCurrentAppointment && appointmentData.recurrence_group_id) {
+        const { error: relatedError } = await supabase
+          .from('appointments')
+          .update(updateData)
+          .eq('recurrence_group_id', appointmentData.recurrence_group_id)
+          .neq('id', appointmentId);
+          
+        if (relatedError) {
+          console.error("Error updating related appointments:", relatedError);
+          toast({
+            title: "Atenção",
+            description: "O pagamento atual foi registrado, mas houve um erro ao atualizar os outros agendamentos da série.",
+            variant: "warning"
+          });
+        } else {
+          toast({
+            title: "Sucesso",
+            description: "Todos os agendamentos da série foram atualizados.",
+          });
+        }
+      }
 
       toast({
         title: "Pagamento finalizado",
@@ -186,7 +275,7 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
                 Nenhum serviço encontrado para este agendamento
               </div>
             ) : (
-              <div className="space-y-3 max-h-[40vh] overflow-y-auto">
+              <div className="space-y-3 max-h-[30vh] overflow-y-auto">
                 {services.map((service) => (
                   <div key={service.id} className="flex justify-between items-center p-3 rounded-md border">
                     <div>
@@ -207,7 +296,54 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
               </div>
             )}
             
-            <div className="pt-4 border-t">
+            <div className="pt-2 border-t space-y-3">
+              {/* Discount field */}
+              <div className="flex justify-between items-center">
+                <Label htmlFor="discount">Desconto (R$)</Label>
+                <Input
+                  id="discount"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  value={discount}
+                  onChange={(e) => setDiscount(e.target.value)}
+                  placeholder="0.00"
+                  className="w-24"
+                />
+              </div>
+              
+              {/* Notes field */}
+              <div className="space-y-1.5">
+                <Label htmlFor="payment-notes">Observações</Label>
+                <Textarea
+                  id="payment-notes"
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  placeholder="Observações sobre o pagamento"
+                  className="resize-none"
+                />
+              </div>
+
+              {/* Recurring appointment option */}
+              {isRecurring && (
+                <div className="flex items-start space-x-2 pt-2">
+                  <Checkbox 
+                    id="pay-only-current" 
+                    checked={payOnlyCurrentAppointment}
+                    onCheckedChange={(checked) => setPayOnlyCurrentAppointment(checked as boolean)}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label htmlFor="pay-only-current">
+                      Pagar apenas este agendamento
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Se desmarcado, todos os agendamentos da série terão o pagamento finalizado
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               <div className="flex justify-between items-center mb-4">
                 <span className="font-medium">Método de Pagamento</span>
                 <Select
