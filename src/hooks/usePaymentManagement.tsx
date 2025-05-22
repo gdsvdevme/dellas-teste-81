@@ -58,6 +58,8 @@ export const usePaymentManagement = () => {
       },
       updateRecurringAppointments?: boolean
     }) => {
+      console.log("Updating appointment:", id, values);
+      
       // First, get the appointment to check if it's part of a recurring series
       const { data: appointment, error: fetchError } = await supabase
         .from('appointments')
@@ -68,10 +70,11 @@ export const usePaymentManagement = () => {
       if (fetchError) throw fetchError;
 
       // Update the specific appointment
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('appointments')
         .update(values)
-        .eq('id', id);
+        .eq('id', id)
+        .select();
 
       if (error) throw error;
 
@@ -85,8 +88,10 @@ export const usePaymentManagement = () => {
 
         if (recurringError) throw recurringError;
       }
+      
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       toast.success("Pagamento atualizado com sucesso");
     },
@@ -181,11 +186,12 @@ export const usePaymentManagement = () => {
 
   // Update appointment price
   const updateAppointmentPrice = (appointmentId: string, newPrice: number) => {
+    console.log("Updating appointment price:", appointmentId, newPrice);
     updateAppointmentMutation.mutate({
       id: appointmentId,
       values: {
-        status: "pagamento pendente", // Use Portuguese value
-        payment_status: "pendente", // Use Portuguese value
+        status: "pagamento pendente", 
+        payment_status: "pendente", 
         final_price: newPrice
       }
     });

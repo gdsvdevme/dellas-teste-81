@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Edit, CreditCard, MessageSquare } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,13 +38,20 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   const [editPrice, setEditPrice] = useState(false);
   const [priceInput, setPriceInput] = useState(appointment.final_price || 0);
 
+  // Sync priceInput when appointment.final_price changes
+  useEffect(() => {
+    setPriceInput(appointment.final_price || 0);
+  }, [appointment.final_price]);
+
   const handlePriceChange = (value: string) => {
     const numValue = parseFloat(value) || 0;
     setPriceInput(numValue);
   };
 
   const handleSavePrice = () => {
-    onUpdatePrice(appointment.id, priceInput);
+    if (priceInput !== appointment.final_price) {
+      onUpdatePrice(appointment.id, priceInput);
+    }
     setEditPrice(false);
   };
 
@@ -91,6 +98,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                     value={priceInput}
                     onChange={(e) => handlePriceChange(e.target.value)}
                     className="w-24 h-8 text-sm"
+                    onBlur={handleSavePrice}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSavePrice()}
+                    autoFocus
                   />
                   <Button 
                     size="sm" 
