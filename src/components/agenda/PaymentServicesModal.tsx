@@ -25,6 +25,7 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
   const [loading, setLoading] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState<string>("dinheiro");
   const [priceInputs, setPriceInputs] = useState<{[key: string]: string}>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Fetch appointment services
   useEffect(() => {
@@ -94,6 +95,11 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
 
   // Complete payment
   const handleCompletePayment = async () => {
+    // Evita múltiplos envios
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
     try {
       // 1. Atualizar o status do agendamento como finalizado e pago
       const { error: appointmentError } = await supabase
@@ -125,6 +131,8 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
         description: `Erro ao finalizar pagamento: ${error.message}`,
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -198,9 +206,23 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
         )}
         
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={handleCompletePayment} disabled={loading || services.length === 0}>
-            Finalizar Pagamento
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancelar</Button>
+          <Button 
+            onClick={handleCompletePayment} 
+            disabled={loading || services.length === 0 || isSubmitting}
+            className="relative"
+          >
+            {isSubmitting ? (
+              <>
+                <span className="opacity-0">Finalizar Pagamento</span>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="h-4 w-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                  <span className="ml-2">Processando...</span>
+                </div>
+              </>
+            ) : (
+              "Finalizar Pagamento"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
