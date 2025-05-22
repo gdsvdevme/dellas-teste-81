@@ -137,13 +137,15 @@ const ClienteHistorico = () => {
       cell: ({ row }: { row: { original: AppointmentWithServices } }) => (
         <Button 
           size="sm" 
-          variant="ghost"
+          variant="salon"
           onClick={(e) => {
             e.stopPropagation();
             setSelectedAppointment(row.original);
           }}
+          className="w-full flex items-center justify-center"
         >
-          <Edit className="h-4 w-4" />
+          <Edit className="h-4 w-4 mr-2" />
+          Editar
         </Button>
       ),
     },
@@ -177,6 +179,7 @@ const ClienteHistorico = () => {
         <Button 
           onClick={() => sendWhatsAppReport(paidAppointments)}
           className="flex items-center gap-2"
+          variant="salon"
           disabled={paidAppointments.length === 0}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
@@ -315,7 +318,7 @@ const ClienteHistorico = () => {
       
       {selectedAppointment && (
         <DialogEditPayment
-          appointment={selectedAppointment}
+          appointment={selectedAppointment as any}
           open={!!selectedAppointment}
           onClose={() => setSelectedAppointment(null)}
           onUpdate={handlePaymentUpdate}
