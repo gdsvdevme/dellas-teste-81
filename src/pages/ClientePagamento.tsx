@@ -133,18 +133,96 @@ const ClientePagamento = () => {
 
       <PageHeader
         title={clientGroup.client_name}
-        subtitle={`Gerenciamento de pagamentos pendentes - ${clientGroup.appointments.length} ${clientGroup.appointments.length === 1 ? 'serviço' : 'serviços'} - Total: R$ ${clientGroup.totalDue.toFixed(2)}`}
+        subtitle={clientGroup.client_phone ? `📱 ${clientGroup.client_phone}` : undefined}
+        highlightedAmount={{
+          label: `${clientGroup.appointments.length} ${clientGroup.appointments.length === 1 ? 'serviço pendente' : 'serviços pendentes'}`,
+          amount: clientGroup.totalDue
+        }}
       />
 
-      {clientGroup.client_phone && (
-        <div className="mb-6 text-muted-foreground">
-          📱 {clientGroup.client_phone}
-        </div>
-      )}
-
-      <Card className="mb-6">
-        <CardContent className="p-6">
-          <div className="flex justify-between items-center mb-4">
+      {selectedCount > 0 ? (
+        <Card className="mb-6 shadow-sm border-salon-secondary/20">
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Checkbox 
+                    id="select-all"
+                    checked={areAllSelected}
+                    onCheckedChange={handleToggleAll}
+                  />
+                  <label 
+                    htmlFor="select-all"
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    Selecionar todos
+                  </label>
+                </div>
+                
+                <div className="text-sm font-medium">
+                  {selectedCount} {selectedCount === 1 ? 'selecionado' : 'selecionados'} 
+                  <span className="text-salon-primary ml-2">
+                    (R$ {selectedTotal.toFixed(2)})
+                  </span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                <Select 
+                  defaultValue="dinheiro"
+                  onValueChange={setPaymentMethod}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Método de pagamento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    <SelectItem value="cartao">Cartão</SelectItem>
+                    <SelectItem value="pix">PIX</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="salon" className="w-full">
+                      <Check className="h-4 w-4 mr-1" /> Pagar selecionados
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmar pagamento</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Deseja marcar {selectedCount} {selectedCount === 1 ? 'serviço' : 'serviços'} como pagos?
+                        Total: R$ {selectedTotal.toFixed(2)}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => {
+                        if (handlePaySelectedAppointments) {
+                          handlePaySelectedAppointments(clientGroup.appointments, paymentMethod);
+                        } else {
+                          const selectedAppointments = clientGroup.appointments.filter(apt => 
+                            selectedAppointmentIds.includes(apt.id)
+                          );
+                          
+                          selectedAppointments.forEach(apt => {
+                            handlePayment(apt, paymentMethod);
+                          });
+                        }
+                      }}>
+                        Confirmar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="mb-6 shadow-sm border-salon-secondary/20">
+          <CardContent className="p-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Checkbox 
                 id="select-all"
@@ -159,142 +237,59 @@ const ClientePagamento = () => {
               </label>
             </div>
             
-            {selectedCount > 0 && (
-              <div className="text-sm">
-                {selectedCount} {selectedCount === 1 ? 'selecionado' : 'selecionados'} 
-                <span className="font-medium ml-2">
-                  (R$ {selectedTotal.toFixed(2)})
-                </span>
-              </div>
-            )}
-          </div>
-
-          {selectedCount > 0 && (
-            <div className="mb-4 p-4 bg-salon-secondary/10 rounded-md">
-              <div className="flex flex-col gap-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="font-medium">Total selecionado:</span> R$ {selectedTotal.toFixed(2)}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">
-                      Método de Pagamento
-                    </label>
-                    <Select 
-                      defaultValue="dinheiro"
-                      onValueChange={setPaymentMethod}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione o método de pagamento" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                        <SelectItem value="cartao">Cartão</SelectItem>
-                        <SelectItem value="pix">PIX</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="flex items-end">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button className="w-full">
-                          <Check className="h-4 w-4 mr-2" /> Pagar selecionados
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Confirmar pagamento</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Deseja marcar {selectedCount} {selectedCount === 1 ? 'serviço' : 'serviços'} como pagos?
-                            Total: R$ {selectedTotal.toFixed(2)}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => {
-                            if (handlePaySelectedAppointments) {
-                              handlePaySelectedAppointments(clientGroup.appointments, paymentMethod);
-                            } else {
-                              const selectedAppointments = clientGroup.appointments.filter(apt => 
-                                selectedAppointmentIds.includes(apt.id)
-                              );
-                              
-                              selectedAppointments.forEach(apt => {
-                                handlePayment(apt, paymentMethod);
-                              });
-                            }
-                          }}>
-                            Confirmar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {selectedCount === 0 && clientGroup.appointments.length > 0 && (
-            <div className="mb-4 p-4 bg-salon-secondary/10 rounded-md flex justify-end">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button>
-                    <Check className="h-4 w-4 mr-2" /> Pagar todos
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmar pagamento</AlertDialogTitle>
-                    <AlertDialogDescription className="space-y-4">
-                      <p>
-                        Deseja marcar todos os {clientGroup.appointments.length} {clientGroup.appointments.length === 1 ? 'serviço' : 'serviços'} de {clientGroup.client_name} como pagos?
-                        Total: R$ {clientGroup.totalDue.toFixed(2)}
-                      </p>
-                      
-                      <div className="pt-2">
-                        <label className="text-sm font-medium mb-1 block">
-                          Método de Pagamento
-                        </label>
-                        <Select 
-                          defaultValue="dinheiro"
-                          onValueChange={setPaymentMethod}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Selecione o método de pagamento" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                            <SelectItem value="cartao">Cartão</SelectItem>
-                            <SelectItem value="pix">PIX</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handlePayAllForClient(clientId!, clientGroup.appointments, paymentMethod)}>
-                      Confirmar
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="salon">
+                  <Check className="h-4 w-4 mr-2" /> Pagar todos
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar pagamento</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-4">
+                    <p>
+                      Deseja marcar todos os {clientGroup.appointments.length} {clientGroup.appointments.length === 1 ? 'serviço' : 'serviços'} de {clientGroup.client_name} como pagos?
+                      Total: R$ {clientGroup.totalDue.toFixed(2)}
+                    </p>
+                    
+                    <div className="pt-2">
+                      <label className="text-sm font-medium mb-1 block">
+                        Método de Pagamento
+                      </label>
+                      <Select 
+                        defaultValue="dinheiro"
+                        onValueChange={setPaymentMethod}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione o método de pagamento" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                          <SelectItem value="cartao">Cartão</SelectItem>
+                          <SelectItem value="pix">PIX</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => handlePayAllForClient(clientId!, clientGroup.appointments, paymentMethod)}>
+                    Confirmar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Serviços Pendentes</h2>
+        <h2 className="text-xl font-semibold mb-3">Serviços Pendentes</h2>
         
         {clientGroup.appointments.map((appointment) => (
-          <Card key={appointment.id} className="overflow-hidden hover:shadow-md transition-shadow">
-            <CardContent className="p-5">
+          <Card key={appointment.id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow border-salon-secondary/20 mb-3">
+            <CardContent className="p-4">
               <div className="flex items-start">
                 <Checkbox 
                   id={`apt-${appointment.id}`}
@@ -311,11 +306,11 @@ const ClientePagamento = () => {
                   <div className="font-medium text-lg">
                     {appointment.appointment_services?.map(as => as.service?.name).join(", ") || "Serviço não especificado"}
                   </div>
-                  <div className="text-sm text-muted-foreground mb-3">
+                  <div className="text-sm text-muted-foreground mb-2">
                     {format(new Date(appointment.start_time), "dd/MM/yyyy HH:mm")}
                   </div>
                   
-                  <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-2 mb-3">
                     {editPrices[appointment.id] ? (
                       <div className="flex items-center gap-2">
                         <Input 
@@ -335,7 +330,7 @@ const ClientePagamento = () => {
                       </div>
                     ) : (
                       <>
-                        <span className="font-medium text-lg">R$ {appointment.final_price?.toFixed(2) || "0.00"}</span>
+                        <span className="font-medium text-lg text-salon-primary">R$ {appointment.final_price?.toFixed(2) || "0.00"}</span>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -349,7 +344,7 @@ const ClientePagamento = () => {
                   </div>
 
                   {appointment.notes && (
-                    <div className="text-sm text-muted-foreground bg-secondary/20 p-2 rounded-md mb-3">
+                    <div className="text-sm text-muted-foreground bg-secondary/10 p-2 rounded-md mb-3">
                       <strong>Observações:</strong> {appointment.notes}
                     </div>
                   )}
@@ -367,7 +362,7 @@ const ClientePagamento = () => {
                   
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button size="sm" className="text-xs">
+                      <Button size="sm" variant="salon" className="text-xs">
                         <CreditCard className="h-3.5 w-3.5 mr-1" /> Pagar
                       </Button>
                     </AlertDialogTrigger>
