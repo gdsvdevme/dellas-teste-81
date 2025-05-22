@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import Pagamentos from "./pages/Pagamentos";
 import ClientePagamento from "./pages/ClientePagamento";
 import Clientes from "./pages/Clientes";
+import ClienteHistorico from "./pages/ClienteHistorico";
 
 // Página temporária para rotas ainda não implementadas
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/agenda" element={<Agenda />} />
               <Route path="/clientes" element={<Clientes />} />
+              <Route path="/clientes/:clientId" element={<ClienteHistorico />} />
               <Route path="/servicos" element={<PlaceholderPage title="Serviços" />} />
               <Route path="/estoque" element={<PlaceholderPage title="Estoque" />} />
               <Route path="/financas" element={<PlaceholderPage title="Finanças" />} />

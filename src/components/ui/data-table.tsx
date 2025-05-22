@@ -28,6 +28,7 @@ interface DataTableProps<T> {
   }[];
   searchField?: keyof T | ((row: T) => string);
   pageSize?: number;
+  onRowClick?: (row: T) => void;
 }
 
 export function DataTable<T>({
@@ -35,6 +36,7 @@ export function DataTable<T>({
   columns,
   searchField,
   pageSize = 10,
+  onRowClick,
 }: DataTableProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
@@ -118,7 +120,11 @@ export function DataTable<T>({
               </TableRow>
             ) : (
               paginatedData.map((row, rowIndex) => (
-                <TableRow key={rowIndex} className="hover:bg-salon-secondary/5 transition-colors">
+                <TableRow 
+                  key={rowIndex} 
+                  className={`hover:bg-salon-secondary/5 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+                  onClick={() => onRowClick && onRowClick(row)}
+                >
                   {columns.map((column, columnIndex) => (
                     <TableCell key={columnIndex}>
                       {column.cell

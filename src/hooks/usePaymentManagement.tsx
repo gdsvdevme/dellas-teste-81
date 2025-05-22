@@ -93,6 +93,7 @@ export const usePaymentManagement = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['client-appointments'] });
       toast.success("Pagamento atualizado com sucesso");
     },
     onError: (error) => {

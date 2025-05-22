@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import ClientDialog from "@/components/clients/ClientDialog";
 const Clientes = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
+  const navigate = useNavigate();
 
   // Buscar clientes do Supabase
   const { data: clients, isLoading, refetch } = useQuery({
@@ -32,7 +34,8 @@ const Clientes = () => {
   });
 
   // Abrir o diálogo para editar um cliente
-  const handleEditClient = (client: any) => {
+  const handleEditClient = (client: any, e: React.MouseEvent) => {
+    e.stopPropagation();
     setEditingClient(client);
     setIsDialogOpen(true);
   };
@@ -41,6 +44,11 @@ const Clientes = () => {
   const handleAddClient = () => {
     setEditingClient(null);
     setIsDialogOpen(true);
+  };
+
+  // Navegar para a página de histórico do cliente
+  const handleRowClick = (client: any) => {
+    navigate(`/clientes/${client.id}`);
   };
 
   // Colunas da tabela de clientes
@@ -74,10 +82,7 @@ const Clientes = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEditClient(row);
-            }}
+            onClick={(e) => handleEditClient(row, e)}
           >
             Editar
           </Button>
@@ -114,6 +119,7 @@ const Clientes = () => {
                 columns={columns}
                 searchField="name"
                 pageSize={10}
+                onRowClick={handleRowClick}
               />
             </div>
           )}
