@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -189,13 +190,65 @@ export const useAppointmentForm = ({
           
         if (error) throw error;
         
-        // Delete old services
-        const { error: deleteError } = await supabase
+        // Primeiro, remova os serviços que não estão mais selecionados
+        const currentServiceIds = await supabase
           .from("appointment_services")
-          .delete()
+          .select("id, service_id")
           .eq("appointment_id", appointment.id);
           
-        if (deleteError) throw deleteError;
+        if (currentServiceIds.error) throw currentServiceIds.error;
+        
+        // Encontre serviços que não estão mais selecionados
+        const servicesToRemove = currentServiceIds.data
+          .filter(item => !values.serviceIds.includes(item.service_id))
+          .map(item => item.id);
+          
+        if (servicesToRemove.length > 0) {
+          const { error: deleteError } = await supabase
+            .from("appointment_services")
+            .delete()
+            .in("id", servicesToRemove);
+            
+          if (deleteError) throw deleteError;
+        }
+        
+        // Para cada serviço selecionado, faça upsert (atualizar se existir, inserir se não)
+        for (const serviceId of values.serviceIds) {
+          const customPrice = values.customPrices?.[serviceId];
+          const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
+          const finalPrice = customPrice !== undefined ? customPrice : defaultPrice;
+          
+          // Verifique se este serviço já existe para este agendamento
+          const { data: existingService } = await supabase
+            .from("appointment_services")
+            .select("id")
+            .eq("appointment_id", appointment.id)
+            .eq("service_id", serviceId)
+            .maybeSingle();
+          
+          if (existingService) {
+            // Atualizar serviço existente
+            const { error: updateError } = await supabase
+              .from("appointment_services")
+              .update({
+                final_price: finalPrice
+              })
+              .eq("id", existingService.id);
+            
+            if (updateError) throw updateError;
+          } else {
+            // Inserir novo serviço
+            const { error: insertError } = await supabase
+              .from("appointment_services")
+              .insert({
+                appointment_id: appointment.id,
+                service_id: serviceId,
+                final_price: finalPrice
+              });
+            
+            if (insertError) throw insertError;
+          }
+        }
         
         // If this is a parent appointment and time/date changed, update all child appointments
         if (isParentAppointment) {
@@ -262,10 +315,8 @@ export const useAppointmentForm = ({
           
         if (error) throw error;
         appointmentId = data.id;
-      }
-      
-      // Add services to appointment with custom prices
-      if (appointmentId) {
+        
+        // Adicionar serviços ao novo agendamento
         const appointmentServices = values.serviceIds.map(serviceId => {
           const customPrice = values.customPrices?.[serviceId];
           const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
@@ -277,11 +328,11 @@ export const useAppointmentForm = ({
           };
         });
         
-        const { error } = await supabase
+        const { error: serviceError } = await supabase
           .from("appointment_services")
           .insert(appointmentServices);
           
-        if (error) throw error;
+        if (serviceError) throw serviceError;
       }
       
       toast({

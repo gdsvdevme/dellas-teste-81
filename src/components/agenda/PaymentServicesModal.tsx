@@ -117,7 +117,8 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
         }
       }
 
-      // Atualizar preços finais dos serviços
+      // Atualizar preços finais dos serviços - Importante: usar UPSERT em vez de INSERT
+      // para evitar violação da restrição de unicidade
       for (const service of services) {
         const { error } = await supabase
           .from('appointment_services')
