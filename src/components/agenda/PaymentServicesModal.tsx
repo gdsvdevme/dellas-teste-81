@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -224,7 +223,7 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
           toast({
             title: "Atenção",
             description: "O pagamento atual foi registrado, mas houve um erro ao atualizar os outros agendamentos da série.",
-            variant: "warning"
+            variant: "destructive"
           });
         } else {
           toast({
