@@ -1,12 +1,10 @@
-import React from "react";
-
 import React, { useState } from "react";
 import { Check, Clock, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
-import PaymentServicesModal from "./modal/PaymentServicesModal";
+import PaymentServicesModal from "../agenda/PaymentServicesModal";
 
 interface AppointmentActionsProps {
   appointmentId: string;

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
   const [services, setServices] = useState<AppointmentService[]>([]);
   const [loading, setLoading] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState<string>("dinheiro");
+  const [priceInputs, setPriceInputs] = useState<{[key: string]: string}>({});
   
   // Fetch appointment services
   useEffect(() => {
@@ -56,6 +58,13 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
         price: item.service.price
       }));
       
+      // Initialize price inputs
+      const initialPriceInputs: {[key: string]: string} = {};
+      formattedServices.forEach(service => {
+        initialPriceInputs[service.id] = service.price.toString();
+      });
+      setPriceInputs(initialPriceInputs);
+      
       setServices(formattedServices);
     } catch (error: any) {
       console.error('Erro ao carregar serviços:', error);
@@ -70,14 +79,18 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
   };
 
   // Handle price change for a service
-  const handlePriceChange = (index: number, price: number) => {
-    const updatedServices = [...services];
-    updatedServices[index].price = price;
-    setServices(updatedServices);
+  const handlePriceChange = (id: string, value: string) => {
+    setPriceInputs(prev => ({
+      ...prev,
+      [id]: value
+    }));
   };
 
   // Calculate total price
-  const totalPrice = services.reduce((sum, service) => sum + service.price, 0);
+  const totalPrice = services.reduce((sum, service) => {
+    const price = parseFloat(priceInputs[service.id]) || 0;
+    return sum + price;
+  }, 0);
 
   // Complete payment
   const handleCompletePayment = async () => {
@@ -138,7 +151,7 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
               </div>
             ) : (
               <div className="space-y-3 max-h-[40vh] overflow-y-auto">
-                {services.map((service, index) => (
+                {services.map((service) => (
                   <div key={service.id} className="flex justify-between items-center p-3 rounded-md border">
                     <div>
                       <p className="font-medium">{service.name}</p>
@@ -146,12 +159,11 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
                     <div className="flex items-center">
                       <span className="text-sm text-muted-foreground mr-2">R$</span>
                       <Input
-                        type="number"
-                        value={service.price}
-                        onChange={(e) => handlePriceChange(index, parseFloat(e.target.value) || 0)}
+                        type="text"
+                        inputMode="decimal"
+                        value={priceInputs[service.id]}
+                        onChange={(e) => handlePriceChange(service.id, e.target.value)}
                         className="w-24"
-                        min={0}
-                        step={0.01}
                       />
                     </div>
                   </div>
