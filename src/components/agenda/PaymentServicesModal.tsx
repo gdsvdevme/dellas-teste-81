@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calculator, ChevronDown, ChevronUp } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface AppointmentService {
   id: string;
@@ -26,6 +29,13 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
   const [paymentMethod, setPaymentMethod] = useState<string>("dinheiro");
   const [priceInputs, setPriceInputs] = useState<{[key: string]: string}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPartialPayment, setIsPartialPayment] = useState(false);
+  const [partialAmount, setPartialAmount] = useState<string>("");
+  const [applyDiscount, setApplyDiscount] = useState(false);
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
+  const [discountValue, setDiscountValue] = useState<string>("");
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [paymentNote, setPaymentNote] = useState<string>("");
   
   // Fetch appointment services
   useEffect(() => {
@@ -35,6 +45,13 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
       // Limpar os estados quando o modal fecha
       setServices([]);
       setPriceInputs({});
+      setIsPartialPayment(false);
+      setPartialAmount("");
+      setApplyDiscount(false);
+      setDiscountType("percentage");
+      setDiscountValue("");
+      setShowAdvancedOptions(false);
+      setPaymentNote("");
     }
   }, [open, appointmentId]);
   
@@ -101,10 +118,48 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
     return sum + price;
   }, 0);
 
+  // Calculate discounted price
+  const calculateDiscountedPrice = () => {
+    if (!applyDiscount || !discountValue) return totalPrice;
+    
+    const discountNumValue = parseFloat(discountValue);
+    if (isNaN(discountNumValue) || discountNumValue <= 0) return totalPrice;
+    
+    if (discountType === "percentage") {
+      if (discountNumValue > 100) return 0;
+      return totalPrice * (1 - discountNumValue / 100);
+    } else {
+      return Math.max(0, totalPrice - discountNumValue);
+    }
+  };
+
+  // Get final price to be paid
+  const finalPrice = isPartialPayment && partialAmount 
+    ? parseFloat(partialAmount) 
+    : calculateDiscountedPrice();
+
+  // Validate if the partial payment amount is valid
+  const isPartialPaymentValid = () => {
+    if (!isPartialPayment) return true;
+    
+    const amount = parseFloat(partialAmount);
+    return !isNaN(amount) && amount > 0 && amount < calculateDiscountedPrice();
+  };
+
   // Complete payment
   const handleCompletePayment = async () => {
     // Evita múltiplos envios
     if (isSubmitting) return;
+    
+    // Validate partial payment
+    if (isPartialPayment && !isPartialPaymentValid()) {
+      toast({
+        title: "Valor inválido",
+        description: "O valor do pagamento parcial deve ser maior que zero e menor que o valor total.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setIsSubmitting(true);
     
@@ -130,24 +185,41 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
         if (error) throw error;
       }
 
-      // Atualizar o status do agendamento como finalizado e pago
+      // Determinar o novo status de pagamento com base no tipo de pagamento
+      const newPaymentStatus = isPartialPayment ? "pendente" : "pago";
+      const newAppointmentStatus = isPartialPayment ? "pagamento pendente" : "finalizado";
+      
+      // Calcular o valor efetivamente pago e o valor restante
+      const paidAmount = finalPrice;
+      const remainingAmount = isPartialPayment ? calculateDiscountedPrice() - paidAmount : 0;
+
+      // Atualizar o status do agendamento
       const paymentDate = new Date().toISOString();
       const { error: appointmentError } = await supabase
         .from('appointments')
         .update({
-          status: "finalizado",
-          payment_status: "pago",
+          status: newAppointmentStatus,
+          payment_status: newPaymentStatus,
           payment_method: paymentMethod,
-          final_price: totalPrice,
-          payment_date: paymentDate
+          final_price: calculateDiscountedPrice(),
+          payment_date: isPartialPayment ? null : paymentDate,
+          notes: paymentNote ? 
+            (paymentNote + (isPartialPayment ? 
+              `\nPagamento parcial: R$${paidAmount.toFixed(2)} - Restante: R$${remainingAmount.toFixed(2)}` : 
+              applyDiscount ? `\nDesconto aplicado: ${discountType === "percentage" ? `${discountValue}%` : `R$${discountValue}`}` : "")) : 
+            (isPartialPayment ? 
+              `Pagamento parcial: R$${paidAmount.toFixed(2)} - Restante: R$${remainingAmount.toFixed(2)}` : 
+              applyDiscount ? `Desconto aplicado: ${discountType === "percentage" ? `${discountValue}%` : `R$${discountValue}`}` : null)
         })
         .eq('id', appointmentId);
 
       if (appointmentError) throw appointmentError;
 
       toast({
-        title: "Pagamento finalizado",
-        description: "Pagamento registrado com sucesso.",
+        title: isPartialPayment ? "Pagamento parcial registrado" : "Pagamento finalizado",
+        description: isPartialPayment ? 
+          `Pagamento parcial de R$${paidAmount.toFixed(2)} registrado com sucesso.` : 
+          "Pagamento registrado com sucesso.",
       });
       
       onSuccess();
@@ -207,7 +279,116 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
               </div>
             )}
             
-            <div className="pt-4 border-t">
+            <div className="pt-4 border-t space-y-4">
+              {/* Opções avançadas toggle */}
+              <button 
+                type="button"
+                onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                className="flex items-center justify-between w-full text-sm font-medium text-left"
+              >
+                <span>Opções avançadas</span>
+                {showAdvancedOptions ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </button>
+              
+              {showAdvancedOptions && (
+                <div className="space-y-4 p-3 bg-slate-50 rounded-md">
+                  {/* Desconto */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="apply-discount" className="text-sm font-medium">
+                        Aplicar desconto
+                      </Label>
+                      <Switch
+                        id="apply-discount"
+                        checked={applyDiscount}
+                        onCheckedChange={setApplyDiscount}
+                      />
+                    </div>
+                    
+                    {applyDiscount && (
+                      <div className="flex items-center space-x-2">
+                        <Select
+                          value={discountType}
+                          onValueChange={(value) => setDiscountType(value as "percentage" | "fixed")}
+                        >
+                          <SelectTrigger className="w-[110px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="percentage">Percentual</SelectItem>
+                            <SelectItem value="fixed">Valor fixo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={discountValue}
+                          onChange={(e) => setDiscountValue(e.target.value)}
+                          placeholder={discountType === "percentage" ? "%" : "R$"}
+                          className="flex-1"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Pagamento parcial */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="partial-payment" className="text-sm font-medium">
+                        Pagamento parcial
+                      </Label>
+                      <Switch
+                        id="partial-payment"
+                        checked={isPartialPayment}
+                        onCheckedChange={setIsPartialPayment}
+                      />
+                    </div>
+                    
+                    {isPartialPayment && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm">Valor a pagar:</span>
+                        <div className="flex items-center flex-1">
+                          <span className="text-sm mr-2">R$</span>
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            value={partialAmount}
+                            onChange={(e) => setPartialAmount(e.target.value)}
+                            placeholder="0,00"
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Observações */}
+                  <div className="space-y-2">
+                    <Label htmlFor="payment-note" className="text-sm font-medium">
+                      Observações
+                    </Label>
+                    <Input
+                      id="payment-note"
+                      value={paymentNote}
+                      onChange={(e) => setPaymentNote(e.target.value)}
+                      placeholder="Observações sobre o pagamento"
+                    />
+                  </div>
+                  
+                  {/* Preço com desconto */}
+                  {applyDiscount && discountValue && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span>Valor com desconto:</span>
+                      <span className="font-medium">R$ {calculateDiscountedPrice().toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <div className="flex justify-between items-center mb-4">
                 <span className="font-medium">Método de Pagamento</span>
                 <Select
@@ -230,6 +411,13 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
                 <span>Valor Total</span>
                 <span>R$ {totalPrice.toFixed(2)}</span>
               </div>
+              
+              {(applyDiscount || isPartialPayment) && (
+                <div className="flex justify-between items-center text-lg font-medium text-green-600">
+                  <span>{isPartialPayment ? "Valor a Pagar" : "Valor Final"}</span>
+                  <span>R$ {finalPrice.toFixed(2)}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -238,7 +426,7 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancelar</Button>
           <Button 
             onClick={handleCompletePayment} 
-            disabled={loading || services.length === 0 || isSubmitting}
+            disabled={loading || services.length === 0 || isSubmitting || (isPartialPayment && !isPartialPaymentValid())}
             className="relative"
           >
             {isSubmitting ? (
@@ -250,7 +438,7 @@ const PaymentServicesModal = ({ open, onClose, appointmentId, onSuccess }: Payme
                 </div>
               </>
             ) : (
-              "Finalizar Pagamento"
+              isPartialPayment ? "Registrar Pagamento Parcial" : "Finalizar Pagamento"
             )}
           </Button>
         </DialogFooter>

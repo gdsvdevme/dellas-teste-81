@@ -27,12 +27,17 @@ export const usePaymentManagement = () => {
             phone
           ),
           appointment_services (
+            id,
             service_id,
+            final_price,
             service:service_id (
-              name
+              id,
+              name,
+              price
             )
           )
-        `);
+        `)
+        .order('start_time', { ascending: false });
 
       if (error) {
         toast.error("Erro ao carregar agendamentos");
@@ -102,6 +107,9 @@ export const usePaymentManagement = () => {
         }
       });
     });
+    
+    // Close the client card after processing
+    setOpenCollapsibleIds(prev => prev.filter(id => id !== clientId));
   };
 
   // Handle payment for selected appointments
