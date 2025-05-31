@@ -93,7 +93,6 @@ const PaidAppointmentsTable = ({
     <DataTable
       data={appointments}
       columns={paidColumns}
-      searchField={(appointment: Appointment) => appointment.client?.name || ""}
     />
   );
 };

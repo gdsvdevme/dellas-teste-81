@@ -40,6 +40,16 @@ const Pagamentos: React.FC = () => {
       })
     : pendingPaymentsByClient;
 
+  // Filter paid appointments by client name
+  const filteredPaidAppointments = searchTerm.trim() !== "" 
+    ? paidAppointments.filter(appointment => {
+        const clientName = appointment.client?.name || '';
+        const normalizedClientName = removeDiacritics(clientName.toLowerCase());
+        const normalizedSearchTerm = removeDiacritics(searchTerm.toLowerCase());
+        return normalizedClientName.includes(normalizedSearchTerm);
+      })
+    : paidAppointments;
+
   return (
     <PageContainer>
       <PageHeader 
@@ -81,7 +91,7 @@ const Pagamentos: React.FC = () => {
 
         <TabsContent value="paid">
           <PaidAppointmentsTable
-            appointments={paidAppointments}
+            appointments={filteredPaidAppointments}
             isLoading={isLoading}
             setSelectedAppointment={setSelectedAppointment}
           />
