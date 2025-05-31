@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -21,6 +22,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { appointmentStatusMap, getDisplayStatus } from "./AgendaUtils";
 import AppointmentModal from "./AppointmentModal";
@@ -66,11 +69,13 @@ const AppointmentDetails = ({
 }: AppointmentDetailsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRecurrenceDeleteDialogOpen, setIsRecurrenceDeleteDialogOpen] = useState(false);
+  const [deleteOption, setDeleteOption] = useState<string>("single");
   
   const { 
     isDeleting, 
     progress, 
     deleteSingleAppointment, 
+    deleteFutureRecurringAppointments,
     deleteAllRecurringAppointments 
   } = useAppointmentDelete({
     onSuccess: () => {
@@ -88,6 +93,8 @@ const AppointmentDetails = ({
   const isRecurring = isRecurringAppointment(appointment);
   const isParent = appointment.is_parent || false;
   const hasParent = !!appointment.parent_appointment_id;
+  const isPastAppointment = new Date() > startTime;
+  const isCompletedOrPaid = appointment.status === "finalizado" || appointment.payment_status === "pago";
 
   const displayStatus = getDisplayStatus(appointment.status);
   const statusConfig = appointmentStatusMap[displayStatus];
@@ -110,6 +117,17 @@ const AppointmentDetails = ({
   
   // Calculate total price
   const totalPrice = services.reduce((total, service) => total + service.price, 0);
+
+  const handleRecurringDelete = async () => {
+    if (deleteOption === "single") {
+      await deleteSingleAppointment(appointment.id);
+    } else if (deleteOption === "future") {
+      await deleteFutureRecurringAppointments(appointment);
+    } else if (deleteOption === "all") {
+      await deleteAllRecurringAppointments(appointment);
+    }
+    setIsRecurrenceDeleteDialogOpen(false);
+  };
 
   return (
     <>
@@ -251,29 +269,52 @@ const AppointmentDetails = ({
                       <AlertDialogTitle>Excluir Agendamento Recorrente</AlertDialogTitle>
                       <AlertDialogDescription>
                         Este é um agendamento {isParent ? "principal" : "parte"} de uma série recorrente. 
-                        Deseja excluir apenas este agendamento ou todos os agendamentos desta série?
+                        Escolha como deseja proceder:
                       </AlertDialogDescription>
                     </AlertDialogHeader>
+                    
+                    <div className="my-4">
+                      <RadioGroup value={deleteOption} onValueChange={setDeleteOption}>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="single" id="single" />
+                          <Label htmlFor="single" className="text-sm">
+                            Excluir apenas este agendamento
+                          </Label>
+                        </div>
+                        
+                        {!isPastAppointment && (
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="future" id="future" />
+                            <Label htmlFor="future" className="text-sm">
+                              Excluir este e todos os futuros agendamentos
+                              <span className="text-xs text-gray-500 block">
+                                (preserva agendamentos passados)
+                              </span>
+                            </Label>
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="all" id="all" />
+                          <Label htmlFor="all" className="text-sm">
+                            Excluir toda a série de agendamentos
+                            {isCompletedOrPaid && (
+                              <span className="text-xs text-red-500 block">
+                                ⚠️ Inclui agendamentos já finalizados/pagos
+                              </span>
+                            )}
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
                     <AlertDialogFooter>
                       <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-                      <Button
-                        variant="outline"
-                        onClick={async () => {
-                          await deleteSingleAppointment(appointment.id);
-                          setIsRecurrenceDeleteDialogOpen(false);
-                        }}
-                        disabled={isDeleting}
-                      >
-                        Excluir apenas este
-                      </Button>
                       <AlertDialogAction 
-                        onClick={async () => {
-                          await deleteAllRecurringAppointments(appointment);
-                          setIsRecurrenceDeleteDialogOpen(false);
-                        }}
+                        onClick={handleRecurringDelete}
                         disabled={isDeleting}
                       >
-                        Excluir todos
+                        Confirmar Exclusão
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

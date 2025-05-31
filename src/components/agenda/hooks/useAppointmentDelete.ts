@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
@@ -121,7 +122,90 @@ export const useAppointmentDelete = ({
     }
   };
 
-  // Function to delete all recurring appointments in a series
+  // Function to delete future appointments in a recurring series
+  const deleteFutureRecurringAppointments = async (appointment: AppointmentType) => {
+    setIsDeleting(true);
+    setProgress(10);
+    
+    try {
+      let parentId = appointment.id;
+      const currentDate = new Date();
+      
+      // If this is a child appointment, get the parent ID
+      if (appointment.parent_appointment_id) {
+        parentId = appointment.parent_appointment_id;
+      }
+      
+      setProgress(30);
+      
+      // Get all future appointments in the same series (including current if it's in the future)
+      const { data: futureAppointments, error: fetchError } = await supabase
+        .from("appointments")
+        .select("id, start_time, status, payment_status")
+        .or(`id.eq.${parentId},parent_appointment_id.eq.${parentId}`)
+        .gte("start_time", currentDate.toISOString());
+
+      if (fetchError) throw fetchError;
+      
+      if (!futureAppointments || futureAppointments.length === 0) {
+        throw new Error("Não foram encontrados agendamentos futuros para excluir");
+      }
+      
+      setProgress(50);
+      
+      // Filter out completed/paid appointments for safety
+      const appointmentsToDelete = futureAppointments.filter(apt => 
+        apt.status !== "finalizado" && apt.payment_status !== "pago"
+      );
+      
+      if (appointmentsToDelete.length === 0) {
+        toast({
+          title: "Informação",
+          description: "Não há agendamentos futuros pendentes para excluir",
+        });
+        return true;
+      }
+      
+      setProgress(70);
+      
+      // Extract just the IDs
+      const appointmentIds = appointmentsToDelete.map(app => app.id);
+      
+      // Delete future appointments in a single operation
+      const { error: deleteError } = await supabase
+        .from("appointments")
+        .delete()
+        .in("id", appointmentIds);
+        
+      if (deleteError) throw deleteError;
+      
+      setProgress(90);
+      
+      if (onSuccess) onSuccess();
+      
+      toast({
+        title: "Sucesso",
+        description: `${appointmentIds.length} agendamentos futuros excluídos com sucesso`,
+      });
+      
+      setProgress(100);
+      return true;
+    } catch (error: any) {
+      console.error("Error deleting future recurring appointments:", error);
+      if (onError) onError(new Error(error.message || "Erro ao excluir agendamentos futuros"));
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir agendamentos futuros",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsDeleting(false);
+      setProgress(0);
+    }
+  };
+
+  // Function to delete all recurring appointments in a series (including past ones)
   const deleteAllRecurringAppointments = async (appointment: AppointmentType) => {
     setIsDeleting(true);
     setProgress(10);
@@ -139,7 +223,7 @@ export const useAppointmentDelete = ({
       // Get all appointments in the same series (parent and all children)
       const { data: relatedAppointments, error: fetchError } = await supabase
         .from("appointments")
-        .select("id")
+        .select("id, status, payment_status")
         .or(`id.eq.${parentId},parent_appointment_id.eq.${parentId}`);
 
       if (fetchError) throw fetchError;
@@ -149,6 +233,15 @@ export const useAppointmentDelete = ({
       }
       
       setProgress(60);
+      
+      // Show warning if there are completed/paid appointments
+      const completedAppointments = relatedAppointments.filter(apt => 
+        apt.status === "finalizado" || apt.payment_status === "pago"
+      );
+      
+      if (completedAppointments.length > 0) {
+        console.warn(`${completedAppointments.length} agendamentos já finalizados/pagos serão excluídos`);
+      }
       
       // Extract just the IDs
       const appointmentIds = relatedAppointments.map(app => app.id);
@@ -167,7 +260,7 @@ export const useAppointmentDelete = ({
       
       toast({
         title: "Sucesso",
-        description: `${appointmentIds.length} agendamentos recorrentes excluídos com sucesso`,
+        description: `${appointmentIds.length} agendamentos da série excluídos com sucesso`,
       });
       
       setProgress(100);
@@ -182,7 +275,6 @@ export const useAppointmentDelete = ({
       });
       return false;
     } finally {
-      // Ensure isDeleting is reset to false even in case of errors
       setIsDeleting(false);
       setProgress(0);
     }
@@ -192,6 +284,7 @@ export const useAppointmentDelete = ({
     isDeleting,
     progress,
     deleteSingleAppointment,
+    deleteFutureRecurringAppointments,
     deleteAllRecurringAppointments
   };
 };
