@@ -188,31 +188,53 @@ export const useAppointmentForm = ({
           
         if (error) throw error;
         
-        // Delete existing appointment services
-        const { error: deleteServicesError } = await supabase
-          .from("appointment_services")
-          .delete()
-          .eq("appointment_id", appointment.id);
+        // Handle appointment services update more carefully
+        try {
+          // First, get existing services to avoid conflicts
+          const { data: existingServices } = await supabase
+            .from("appointment_services")
+            .select("*")
+            .eq("appointment_id", appointment.id);
           
-        if (deleteServicesError) throw deleteServicesError;
-        
-        // Insert updated services with correct prices
-        const appointmentServices = values.serviceIds.map(serviceId => {
-          const customPrice = values.customPrices?.[serviceId];
-          const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
+          // Delete existing appointment services only if we got them
+          if (existingServices) {
+            const { error: deleteServicesError } = await supabase
+              .from("appointment_services")
+              .delete()
+              .eq("appointment_id", appointment.id);
+              
+            if (deleteServicesError) {
+              console.error("Error deleting existing services:", deleteServicesError);
+              throw deleteServicesError;
+            }
+          }
           
-          return {
-            appointment_id: appointment.id,
-            service_id: serviceId,
-            final_price: customPrice !== undefined ? customPrice : defaultPrice,
-          };
-        });
-        
-        const { error: serviceError } = await supabase
-          .from("appointment_services")
-          .insert(appointmentServices);
+          // Insert updated services with correct prices
+          const appointmentServices = values.serviceIds.map(serviceId => {
+            const customPrice = values.customPrices?.[serviceId];
+            const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
+            
+            return {
+              appointment_id: appointment.id,
+              service_id: serviceId,
+              final_price: customPrice !== undefined ? customPrice : defaultPrice,
+            };
+          });
           
-        if (serviceError) throw serviceError;
+          if (appointmentServices.length > 0) {
+            const { error: serviceError } = await supabase
+              .from("appointment_services")
+              .insert(appointmentServices);
+              
+            if (serviceError) {
+              console.error("Error inserting services:", serviceError);
+              throw serviceError;
+            }
+          }
+        } catch (servicesError) {
+          console.error("Error handling appointment services:", servicesError);
+          throw servicesError;
+        }
         
         // If this is a parent appointment and time/date changed, update all child appointments
         if (isParentAppointment) {
@@ -261,32 +283,38 @@ export const useAppointmentForm = ({
               }
               
               // Also update services for each child appointment
-              const { error: deleteChildServicesError } = await supabase
-                .from("appointment_services")
-                .delete()
-                .eq("appointment_id", id);
-                
-              if (deleteChildServicesError) {
-                console.error(`Error deleting child appointment services ${id}:`, deleteChildServicesError);
-              } else {
-                const childAppointmentServices = values.serviceIds.map(serviceId => {
-                  const customPrice = values.customPrices?.[serviceId];
-                  const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
-                  
-                  return {
-                    appointment_id: id,
-                    service_id: serviceId,
-                    final_price: customPrice !== undefined ? customPrice : defaultPrice,
-                  };
-                });
-                
-                const { error: insertChildServicesError } = await supabase
+              try {
+                const { error: deleteChildServicesError } = await supabase
                   .from("appointment_services")
-                  .insert(childAppointmentServices);
+                  .delete()
+                  .eq("appointment_id", id);
                   
-                if (insertChildServicesError) {
-                  console.error(`Error inserting child appointment services ${id}:`, insertChildServicesError);
+                if (deleteChildServicesError) {
+                  console.error(`Error deleting child appointment services ${id}:`, deleteChildServicesError);
+                } else {
+                  const childAppointmentServices = values.serviceIds.map(serviceId => {
+                    const customPrice = values.customPrices?.[serviceId];
+                    const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
+                    
+                    return {
+                      appointment_id: id,
+                      service_id: serviceId,
+                      final_price: customPrice !== undefined ? customPrice : defaultPrice,
+                    };
+                  });
+                  
+                  if (childAppointmentServices.length > 0) {
+                    const { error: insertChildServicesError } = await supabase
+                      .from("appointment_services")
+                      .insert(childAppointmentServices);
+                      
+                    if (insertChildServicesError) {
+                      console.error(`Error inserting child appointment services ${id}:`, insertChildServicesError);
+                    }
+                  }
                 }
+              } catch (childServicesError) {
+                console.error(`Error handling child appointment services ${id}:`, childServicesError);
               }
             }
           }
