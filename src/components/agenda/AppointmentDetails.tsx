@@ -108,10 +108,10 @@ const AppointmentDetails = ({
     paymentStatus = "Pendente";
   }
   
-  // Get services and calculate prices correctly
+  // Get services with proper price handling
   const services = appointment.appointment_services?.map(as => ({
     name: as.services.name,
-    // Use final_price from appointment_services, or fallback to final_price if not available
+    // Use final_price from appointment_services table
     price: as.final_price || 0,
     duration: as.services.duration
   })) || [];
