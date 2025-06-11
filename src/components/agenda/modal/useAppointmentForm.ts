@@ -105,8 +105,8 @@ export const useAppointmentForm = ({
         startTime: startDate.getHours().toString().padStart(2, '0') + ":" + 
                   startDate.getMinutes().toString().padStart(2, '0'),
         notes: appointment.notes || "",
-        status: appointment.status as AppointmentStatus,
-        paymentStatus: appointment.payment_status as PaymentStatus,
+        status: appointment.status as AppointmentStatus, // Usar o status como está no banco
+        paymentStatus: appointment.payment_status as PaymentStatus, // Usar o status de pagamento como está no banco
         ...recurrenceSettings,
         customPrices: customPrices,
       });
@@ -116,6 +116,7 @@ export const useAppointmentForm = ({
   }, [appointment, selectedDate, form]);
 
   const calculateEndTime = (values: AppointmentFormValues) => {
+    // ... keep existing code (calculateEndTime function logic)
     const selectedServices = services.filter(service => 
       values.serviceIds.includes(service.id)
     );
@@ -137,61 +138,6 @@ export const useAppointmentForm = ({
     return { startDate, endDate, totalDuration };
   };
 
-  // Helper function to update appointment services using UPSERT approach
-  const updateAppointmentServices = async (appointmentId: string, serviceIds: string[], customPrices: Record<string, number> = {}) => {
-    console.log('Updating appointment services for appointment:', appointmentId);
-    console.log('Service IDs:', serviceIds);
-    console.log('Custom prices:', customPrices);
-
-    // Remove duplicates from serviceIds to prevent constraint violations
-    const uniqueServiceIds = [...new Set(serviceIds)];
-    
-    if (uniqueServiceIds.length !== serviceIds.length) {
-      console.warn('Duplicate service IDs detected and removed:', serviceIds);
-    }
-
-    // Use a transaction approach: delete all existing services first, then insert new ones
-    const { error: deleteError } = await supabase
-      .from("appointment_services")
-      .delete()
-      .eq("appointment_id", appointmentId);
-
-    if (deleteError) {
-      console.error("Error deleting existing appointment services:", deleteError);
-      throw deleteError;
-    }
-
-    // Wait a moment to ensure deletion is complete
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Prepare new appointment services
-    const appointmentServices = uniqueServiceIds.map(serviceId => {
-      const customPrice = customPrices[serviceId];
-      const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
-      
-      return {
-        appointment_id: appointmentId,
-        service_id: serviceId,
-        final_price: customPrice !== undefined ? customPrice : defaultPrice,
-      };
-    });
-
-    console.log('Inserting appointment services:', appointmentServices);
-
-    if (appointmentServices.length > 0) {
-      const { error: insertError } = await supabase
-        .from("appointment_services")
-        .insert(appointmentServices);
-
-      if (insertError) {
-        console.error("Error inserting appointment services:", insertError);
-        throw insertError;
-      }
-    }
-
-    console.log('Successfully updated appointment services');
-  };
-
   const onSubmit = async (values: AppointmentFormValues) => {
     setSubmitting(true);
     
@@ -208,12 +154,13 @@ export const useAppointmentForm = ({
         return total + (customPrice !== undefined ? customPrice : service.price);
       }, 0);
       
-      // Use status directly from form
+      // Usar os status diretamente do formulário em português
       const dbStatus = values.status;
       const dbPaymentStatus = values.paymentStatus;
       
       // Determine if this is a parent appointment being edited
       const isParentAppointment = appointment?.is_parent || false;
+      const hasParent = appointment?.parent_appointment_id !== null && appointment?.parent_appointment_id !== undefined;
       
       // Prepare appointment data
       const appointmentData = {
@@ -243,8 +190,65 @@ export const useAppointmentForm = ({
           
         if (error) throw error;
         
-        // Update appointment services using improved logic
-        await updateAppointmentServices(appointment.id, values.serviceIds, values.customPrices);
+        // Primeiro, remova os serviços que não estão mais selecionados
+        const currentServiceIds = await supabase
+          .from("appointment_services")
+          .select("id, service_id")
+          .eq("appointment_id", appointment.id);
+          
+        if (currentServiceIds.error) throw currentServiceIds.error;
+        
+        // Encontre serviços que não estão mais selecionados
+        const servicesToRemove = currentServiceIds.data
+          .filter(item => !values.serviceIds.includes(item.service_id))
+          .map(item => item.id);
+          
+        if (servicesToRemove.length > 0) {
+          const { error: deleteError } = await supabase
+            .from("appointment_services")
+            .delete()
+            .in("id", servicesToRemove);
+            
+          if (deleteError) throw deleteError;
+        }
+        
+        // Para cada serviço selecionado, faça upsert (atualizar se existir, inserir se não)
+        for (const serviceId of values.serviceIds) {
+          const customPrice = values.customPrices?.[serviceId];
+          const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
+          const finalPrice = customPrice !== undefined ? customPrice : defaultPrice;
+          
+          // Verifique se este serviço já existe para este agendamento
+          const { data: existingService } = await supabase
+            .from("appointment_services")
+            .select("id")
+            .eq("appointment_id", appointment.id)
+            .eq("service_id", serviceId)
+            .maybeSingle();
+          
+          if (existingService) {
+            // Atualizar serviço existente
+            const { error: updateError } = await supabase
+              .from("appointment_services")
+              .update({
+                final_price: finalPrice
+              })
+              .eq("id", existingService.id);
+            
+            if (updateError) throw updateError;
+          } else {
+            // Inserir novo serviço
+            const { error: insertError } = await supabase
+              .from("appointment_services")
+              .insert({
+                appointment_id: appointment.id,
+                service_id: serviceId,
+                final_price: finalPrice
+              });
+            
+            if (insertError) throw insertError;
+          }
+        }
         
         // If this is a parent appointment and time/date changed, update all child appointments
         if (isParentAppointment) {
@@ -262,14 +266,15 @@ export const useAppointmentForm = ({
             const timeDiff = startDate.getTime() - oldStartTime.getTime();
             
             // Update each child appointment with the same time difference
-            for (const child of childAppointments) {
+            const childUpdates = childAppointments.map(child => {
               const childStartTime = new Date(child.start_time);
               const childEndTime = new Date(child.end_time);
               
               const newChildStartTime = new Date(childStartTime.getTime() + timeDiff);
               const newChildEndTime = new Date(childEndTime.getTime() + timeDiff);
               
-              const childUpdateData = {
+              return {
+                id: child.id,
                 start_time: newChildStartTime.toISOString(),
                 end_time: newChildEndTime.toISOString(),
                 notes: values.notes,
@@ -277,17 +282,18 @@ export const useAppointmentForm = ({
                 payment_status: dbPaymentStatus,
                 final_price: totalPrice,
               };
-              
+            });
+            
+            // Update all child appointments in a single batch
+            for (const childUpdate of childUpdates) {
+              const { id, ...updateData } = childUpdate;
               const { error: updateError } = await supabase
                 .from("appointments")
-                .update(childUpdateData)
-                .eq("id", child.id);
+                .update(updateData)
+                .eq("id", id);
                 
               if (updateError) {
-                console.error(`Error updating child appointment ${child.id}:`, updateError);
-              } else {
-                // Also update services for each child appointment
-                await updateAppointmentServices(child.id, values.serviceIds, values.customPrices);
+                console.error(`Error updating child appointment ${id}:`, updateError);
               }
             }
           }
@@ -298,7 +304,7 @@ export const useAppointmentForm = ({
           .from("appointments")
           .insert({
             ...appointmentData,
-            is_parent: false,
+            is_parent: false, // New single appointments are not parents
             parent_appointment_id: null,
             recurrence: null,
             recurrence_days: null,
@@ -310,8 +316,23 @@ export const useAppointmentForm = ({
         if (error) throw error;
         appointmentId = data.id;
         
-        // Add services to new appointment
-        await updateAppointmentServices(appointmentId, values.serviceIds, values.customPrices);
+        // Adicionar serviços ao novo agendamento
+        const appointmentServices = values.serviceIds.map(serviceId => {
+          const customPrice = values.customPrices?.[serviceId];
+          const defaultPrice = services.find(s => s.id === serviceId)?.price || 0;
+          
+          return {
+            appointment_id: appointmentId!,
+            service_id: serviceId,
+            final_price: customPrice !== undefined ? customPrice : defaultPrice,
+          };
+        });
+        
+        const { error: serviceError } = await supabase
+          .from("appointment_services")
+          .insert(appointmentServices);
+          
+        if (serviceError) throw serviceError;
       }
       
       toast({
