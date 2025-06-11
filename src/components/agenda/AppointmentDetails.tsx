@@ -102,21 +102,27 @@ const AppointmentDetails = ({
   
   // Format payment status
   let paymentStatus = "Não definido";
-  if (appointment.payment_status === "paid") {
+  if (appointment.payment_status === "pago") {
     paymentStatus = "Pago";
-  } else if (appointment.payment_status === "pending") {
+  } else if (appointment.payment_status === "pendente") {
     paymentStatus = "Pendente";
   }
   
-  // Get services
+  // Get services and calculate prices correctly
   const services = appointment.appointment_services?.map(as => ({
     name: as.services.name,
-    price: as.final_price,
+    // Use final_price from appointment_services, or fallback to final_price if not available
+    price: as.final_price || 0,
     duration: as.services.duration
   })) || [];
   
-  // Calculate total price
-  const totalPrice = services.reduce((total, service) => total + service.price, 0);
+  // Calculate total price from services or use appointment final_price as fallback
+  let totalPrice = 0;
+  if (services.length > 0) {
+    totalPrice = services.reduce((total, service) => total + service.price, 0);
+  } else if (appointment.final_price) {
+    totalPrice = appointment.final_price;
+  }
 
   const handleRecurringDelete = async () => {
     if (deleteOption === "single") {
@@ -183,14 +189,18 @@ const AppointmentDetails = ({
             {/* Services */}
             <div className="pt-3">
               <h4 className="text-sm font-medium mb-2">Serviços:</h4>
-              <ul className="space-y-2">
-                {services.map((service, index) => (
-                  <li key={index} className="flex justify-between text-sm">
-                    <span>{service.name} ({service.duration} min)</span>
-                    <span className="font-medium">R$ {service.price.toFixed(2)}</span>
-                  </li>
-                ))}
-              </ul>
+              {services.length > 0 ? (
+                <ul className="space-y-2">
+                  {services.map((service, index) => (
+                    <li key={index} className="flex justify-between text-sm">
+                      <span>{service.name} ({service.duration} min)</span>
+                      <span className="font-medium">R$ {service.price.toFixed(2)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-sm text-gray-500">Nenhum serviço encontrado</div>
+              )}
             </div>
             
             {/* Total */}
