@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,8 +14,8 @@ interface PaymentControlsProps {
   setPaymentMethod: (value: string) => void;
   areAllSelected: boolean;
   handleToggleAll: (checked: boolean) => void;
-  onPaySelectedAppointments: () => void;
-  onPayAllForClient: () => void;
+  onPaySelectedAppointments: (appointments: Appointment[], method?: string) => void;
+  onPayAllForClient: (clientId: string, appointments: Appointment[], method?: string) => void;
   clientId?: string;
   appointments: Appointment[];
 }
@@ -30,6 +29,7 @@ const PaymentControls: React.FC<PaymentControlsProps> = ({
   handleToggleAll,
   onPaySelectedAppointments,
   onPayAllForClient,
+  clientId,
   appointments
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -38,13 +38,15 @@ const PaymentControls: React.FC<PaymentControlsProps> = ({
 
   const handlePaySelected = () => {
     setIsProcessing(true);
-    onPaySelectedAppointments();
+    onPaySelectedAppointments(appointments, paymentMethod);
     setTimeout(() => setIsProcessing(false), 1500);
   };
 
   const handlePayAll = () => {
     setIsProcessing(true);
-    onPayAllForClient();
+    if (clientId) {
+      onPayAllForClient(clientId, appointments, paymentMethod);
+    }
     setTimeout(() => setIsProcessing(false), 1500);
   };
 
