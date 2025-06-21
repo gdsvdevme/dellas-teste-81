@@ -1,14 +1,15 @@
 
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Edit, CreditCard, MessageSquare } from "lucide-react";
+import { Edit, CreditCard, MessageSquare, Calendar, User } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Appointment } from "./PendingPaymentsByClient";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import PriceEditor from "./PriceEditor";
+import PaymentStatusBadge from "./PaymentStatusBadge";
 
 interface ServiceCardProps {
   appointment: Appointment;
@@ -35,24 +36,32 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   paymentMethod,
   setPaymentMethod
 }) => {
-  const [editPrice, setEditPrice] = useState(false);
-  const [priceInput, setPriceInput] = useState(appointment.final_price || 0);
+  const [editingPrice, setEditingPrice] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Sync priceInput when appointment.final_price changes
-  useEffect(() => {
-    setPriceInput(appointment.final_price || 0);
-  }, [appointment.final_price]);
-
-  const handlePriceChange = (value: string) => {
-    const numValue = parseFloat(value) || 0;
-    setPriceInput(numValue);
+  const handlePriceUpdate = (newPrice: number) => {
+    if (newPrice !== (appointment.final_price || 0)) {
+      setIsProcessing(true);
+      onUpdatePrice(appointment.id, newPrice);
+      
+      // Simular delay de processamento para feedback visual
+      setTimeout(() => {
+        setIsProcessing(false);
+        setEditingPrice(false);
+      }, 1000);
+    } else {
+      setEditingPrice(false);
+    }
   };
 
-  const handleSavePrice = () => {
-    if (priceInput !== appointment.final_price) {
-      onUpdatePrice(appointment.id, priceInput);
-    }
-    setEditPrice(false);
+  const handlePayment = (method?: string) => {
+    setIsProcessing(true);
+    onPay(appointment, method);
+    
+    // Reset processing após delay
+    setTimeout(() => {
+      setIsProcessing(false);
+    }, 1500);
   };
 
   // Gera link para WhatsApp
@@ -68,9 +77,18 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   };
 
   return (
-    <Card key={appointment.id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow border-salon-secondary/20 mb-3">
-      <CardContent className="p-4">
-        <div className="flex items-start">
+    <Card className="overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 border-salon-secondary/20 mb-3 relative">
+      {isProcessing && (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className="h-5 w-5 border-2 border-salon-primary border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-salon-primary font-medium">Processando...</span>
+          </div>
+        </div>
+      )}
+      
+      <CardContent className="p-5">
+        <div className="flex items-start gap-4">
           <Checkbox 
             id={`apt-${appointment.id}`}
             checked={isSelected}
@@ -79,90 +97,104 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 onToggleSelect(appointment.id, checked);
               }
             }}
-            className="mt-1 mr-3"
+            className="mt-1 h-5 w-5"
+            disabled={isProcessing}
           />
           
-          <div className="flex-grow">
-            <div className="font-medium text-lg">
-              {appointment.appointment_services?.map(as => as.service?.name).join(", ") || "Serviço não especificado"}
-            </div>
-            <div className="text-sm text-muted-foreground mb-2">
-              {format(new Date(appointment.start_time), "dd/MM/yyyy HH:mm")}
+          <div className="flex-grow space-y-3">
+            {/* Header com status */}
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-semibold text-lg text-gray-900">
+                  {appointment.appointment_services?.map(as => as.service?.name).join(", ") || "Serviço não especificado"}
+                </h3>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    {format(new Date(appointment.start_time), "dd/MM/yyyy HH:mm")}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <User className="h-4 w-4" />
+                    {clientName}
+                  </div>
+                </div>
+              </div>
+              <PaymentStatusBadge 
+                status={isProcessing ? 'processing' : 'pending'} 
+              />
             </div>
             
-            <div className="flex items-center gap-2 mb-3">
-              {editPrice ? (
-                <div className="flex items-center gap-2">
-                  <Input 
-                    type="number"
-                    value={priceInput}
-                    onChange={(e) => handlePriceChange(e.target.value)}
-                    className="w-24 h-8 text-sm"
-                    onBlur={handleSavePrice}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSavePrice()}
-                    autoFocus
-                  />
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    className="h-8 text-xs"
-                    onClick={handleSavePrice}
-                  >
-                    Salvar
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <span className="font-medium text-lg text-salon-primary">R$ {appointment.final_price?.toFixed(2) || "0.00"}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 p-1"
-                    onClick={() => setEditPrice(true)}
-                  >
-                    <Edit className="h-3.5 w-3.5" />
-                  </Button>
-                </>
-              )}
+            {/* Preço */}
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-600">Valor do serviço:</span>
+                <PriceEditor
+                  value={appointment.final_price || 0}
+                  onSave={handlePriceUpdate}
+                  onCancel={() => setEditingPrice(false)}
+                  isEditing={editingPrice}
+                  onEditToggle={() => setEditingPrice(true)}
+                  disabled={isProcessing}
+                />
+              </div>
             </div>
 
+            {/* Observações */}
             {appointment.notes && (
-              <div className="text-sm text-muted-foreground bg-secondary/10 p-2 rounded-md mb-3">
-                <strong>Observações:</strong> {appointment.notes}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0" />
+                  <div>
+                    <span className="text-sm font-medium text-blue-900">Observações:</span>
+                    <p className="text-sm text-blue-800 mt-1">{appointment.notes}</p>
+                  </div>
+                </div>
               </div>
             )}
           </div>
           
-          <div className="flex flex-col gap-2 ml-4">
+          {/* Ações */}
+          <div className="flex flex-col gap-2 min-w-[120px]">
             <Button 
               size="sm" 
               variant="outline"
-              className="text-xs"
+              className="text-xs h-8 justify-start"
               onClick={() => onEdit(appointment)}
+              disabled={isProcessing}
             >
-              <Edit className="h-3.5 w-3.5 mr-1" /> Editar
+              <Edit className="h-3.5 w-3.5 mr-2" /> 
+              Editar
             </Button>
             
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button size="sm" variant="salon" className="text-xs">
-                  <CreditCard className="h-3.5 w-3.5 mr-1" /> Pagar
+                <Button 
+                  size="sm" 
+                  variant="salon" 
+                  className="text-xs h-8 justify-start"
+                  disabled={isProcessing}
+                >
+                  <CreditCard className="h-3.5 w-3.5 mr-2" /> 
+                  Pagar
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="sm:max-w-md">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Confirmar pagamento</AlertDialogTitle>
-                  <AlertDialogDescription>
+                  <AlertDialogDescription asChild>
                     <div className="space-y-4">
-                      <p>Deseja marcar este serviço como pago?</p>
-                      <p>Valor: R$ {appointment.final_price?.toFixed(2) || "0.00"}</p>
+                      <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                        <p><span className="font-medium">Serviço:</span> {appointment.appointment_services?.map(as => as.service?.name).join(", ")}</p>
+                        <p><span className="font-medium">Cliente:</span> {clientName}</p>
+                        <p><span className="font-medium">Data:</span> {format(new Date(appointment.start_time), "dd/MM/yyyy HH:mm")}</p>
+                        <p><span className="font-medium">Valor:</span> R$ {(appointment.final_price || 0).toFixed(2)}</p>
+                      </div>
                       
-                      <div className="pt-2">
-                        <label className="text-sm font-medium mb-1 block">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">
                           Método de Pagamento
                         </label>
                         <Select 
-                          defaultValue="dinheiro"
                           value={paymentMethod}
                           onValueChange={setPaymentMethod}
                         >
@@ -170,9 +202,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                             <SelectValue placeholder="Selecione o método de pagamento" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                            <SelectItem value="cartao">Cartão</SelectItem>
-                            <SelectItem value="pix">PIX</SelectItem>
+                            <SelectItem value="dinheiro">💵 Dinheiro</SelectItem>
+                            <SelectItem value="cartao">💳 Cartão</SelectItem>
+                            <SelectItem value="pix">📱 PIX</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -181,22 +213,30 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => onPay(appointment, paymentMethod)}>
-                    Confirmar
+                  <AlertDialogAction onClick={() => handlePayment(paymentMethod)}>
+                    Confirmar Pagamento
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
             
             {clientPhone && (
-              <a 
-                href={getWhatsAppLink()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-salon-primary hover:bg-salon-primary/10 h-8 px-3 py-0"
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-xs h-8 justify-start text-green-600 hover:text-green-700 hover:bg-green-50"
+                asChild
+                disabled={isProcessing}
               >
-                <MessageSquare className="h-3.5 w-3.5 mr-1" /> WhatsApp
-              </a>
+                <a 
+                  href={getWhatsAppLink() || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageSquare className="h-3.5 w-3.5 mr-2" /> 
+                  WhatsApp
+                </a>
+              </Button>
             )}
           </div>
         </div>

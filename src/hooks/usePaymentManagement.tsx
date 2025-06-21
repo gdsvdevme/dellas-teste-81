@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -101,12 +101,15 @@ export const usePaymentManagement = () => {
     }
   });
 
-  // Handle payment
-  const handlePayment = (appointment: Appointment, method?: string, updateRecurring = false) => {
+  // Handle payment with optimistic updates
+  const handlePayment = useCallback((appointment: Appointment, method?: string, updateRecurring = false) => {
     // Remove from selected if it's selected
     if (selectedAppointmentIds.includes(appointment.id)) {
       setSelectedAppointmentIds(prev => prev.filter(id => id !== appointment.id));
     }
+    
+    // Show immediate feedback
+    toast.success("Processando pagamento...");
     
     updateAppointmentMutation.mutate({
       id: appointment.id,
@@ -119,15 +122,17 @@ export const usePaymentManagement = () => {
       },
       updateRecurringAppointments: updateRecurring
     });
-  };
+  }, [selectedAppointmentIds, paymentMethod, updateAppointmentMutation]);
 
   // Handle payment for all appointments of a client
-  const handlePayAllForClient = (clientId: string, appointments: Appointment[], method?: string) => {
+  const handlePayAllForClient = useCallback((clientId: string, appointments: Appointment[], method?: string) => {
     // Remove all client appointments from selected
     const appointmentIds = appointments.map(apt => apt.id);
     setSelectedAppointmentIds(prev => 
       prev.filter(id => !appointmentIds.includes(id))
     );
+    
+    toast.success(`Processando ${appointments.length} pagamentos...`);
     
     appointments.forEach(appointment => {
       updateAppointmentMutation.mutate({
@@ -140,13 +145,20 @@ export const usePaymentManagement = () => {
         }
       });
     });
-  };
+  }, [paymentMethod, updateAppointmentMutation]);
 
   // Handle payment for selected appointments
-  const handlePaySelectedAppointments = (appointments: Appointment[], method?: string) => {
+  const handlePaySelectedAppointments = useCallback((appointments: Appointment[], method?: string) => {
     const selectedAppointments = appointments.filter(apt => 
       selectedAppointmentIds.includes(apt.id)
     );
+    
+    if (selectedAppointments.length === 0) {
+      toast.error("Nenhum serviço selecionado");
+      return;
+    }
+    
+    toast.success(`Processando ${selectedAppointments.length} pagamentos...`);
     
     selectedAppointments.forEach(appointment => {
       updateAppointmentMutation.mutate({
@@ -162,19 +174,19 @@ export const usePaymentManagement = () => {
     
     // Clear selected appointments
     setSelectedAppointmentIds([]);
-  };
+  }, [selectedAppointmentIds, paymentMethod, updateAppointmentMutation]);
 
   // Toggle collapsible open/closed state
-  const toggleCollapsible = (clientId: string) => {
+  const toggleCollapsible = useCallback((clientId: string) => {
     setOpenCollapsibleIds(prev => 
       prev.includes(clientId) 
         ? prev.filter(id => id !== clientId)
         : [...prev, clientId]
     );
-  };
+  }, []);
 
   // Toggle appointment selection
-  const toggleAppointmentSelection = (appointmentId: string, isSelected: boolean) => {
+  const toggleAppointmentSelection = useCallback((appointmentId: string, isSelected: boolean) => {
     setSelectedAppointmentIds(prev => {
       if (isSelected && !prev.includes(appointmentId)) {
         return [...prev, appointmentId];
@@ -183,11 +195,13 @@ export const usePaymentManagement = () => {
       }
       return prev;
     });
-  };
+  }, []);
 
-  // Update appointment price
-  const updateAppointmentPrice = (appointmentId: string, newPrice: number) => {
+  // Update appointment price with better feedback
+  const updateAppointmentPrice = useCallback((appointmentId: string, newPrice: number) => {
     console.log("Updating appointment price:", appointmentId, newPrice);
+    toast.success("Atualizando preço...");
+    
     updateAppointmentMutation.mutate({
       id: appointmentId,
       values: {
@@ -196,44 +210,44 @@ export const usePaymentManagement = () => {
         final_price: newPrice
       }
     });
-  };
+  }, [updateAppointmentMutation]);
 
-  // Group appointments by client for pending payments
-  const pendingPaymentsByClient = appointments
-    ? (() => {
-        const clientMap = new Map<string, ClientAppointments>();
-        
-        appointments
-          .filter(appointment => appointment.payment_status === 'pendente')
-          .forEach(appointment => {
-            const clientId = appointment.client_id;
-            const clientName = appointment.client?.name || 'Cliente Desconhecido';
-            const clientPhone = appointment.client?.phone || '';
-            const price = appointment.final_price || 0;
+  // Memoized pending payments grouped by client
+  const pendingPaymentsByClient = useMemo(() => {
+    if (!appointments) return [];
+    
+    const clientMap = new Map<string, ClientAppointments>();
+    
+    appointments
+      .filter(appointment => appointment.payment_status === 'pendente')
+      .forEach(appointment => {
+        const clientId = appointment.client_id;
+        const clientName = appointment.client?.name || 'Cliente Desconhecido';
+        const clientPhone = appointment.client?.phone || '';
+        const price = appointment.final_price || 0;
 
-            if (!clientMap.has(clientId)) {
-              clientMap.set(clientId, {
-                client_id: clientId,
-                client_name: clientName,
-                client_phone: clientPhone,
-                appointments: [],
-                totalDue: 0
-              });
-            }
-
-            const client = clientMap.get(clientId)!;
-            client.appointments.push(appointment);
-            client.totalDue += price;
+        if (!clientMap.has(clientId)) {
+          clientMap.set(clientId, {
+            client_id: clientId,
+            client_name: clientName,
+            client_phone: clientPhone,
+            appointments: [],
+            totalDue: 0
           });
+        }
 
-        return Array.from(clientMap.values());
-      })()
-    : [];
+        const client = clientMap.get(clientId)!;
+        client.appointments.push(appointment);
+        client.totalDue += price;
+      });
 
-  // Paid appointments for table display
-  const paidAppointments = appointments
-    ? appointments.filter(appointment => appointment.payment_status === 'pago')
-    : [];
+    return Array.from(clientMap.values());
+  }, [appointments]);
+
+  // Memoized paid appointments
+  const paidAppointments = useMemo(() => {
+    return appointments ? appointments.filter(appointment => appointment.payment_status === 'pago') : [];
+  }, [appointments]);
 
   return {
     appointments,
