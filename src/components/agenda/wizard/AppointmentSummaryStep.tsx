@@ -16,9 +16,9 @@ const AppointmentSummaryStep = ({
     formValues.serviceIds.includes(s.id)
   );
 
-  // Calculate total price
+  // Calculate total price using custom prices if available
   const totalPrice = selectedServices.reduce((total, service) => {
-    const customPrice = formValues.customPrices[service.id];
+    const customPrice = formValues.customPrices?.[service.id];
     return total + (customPrice !== undefined ? customPrice : service.price);
   }, 0);
 
@@ -77,7 +77,7 @@ const AppointmentSummaryStep = ({
           <h4 className="font-medium text-sm text-gray-500">Serviços</h4>
           <div className="space-y-2 mt-1">
             {selectedServices.map((service) => {
-              const customPrice = formValues.customPrices[service.id];
+              const customPrice = formValues.customPrices?.[service.id];
               const displayPrice = customPrice !== undefined ? customPrice : service.price;
               
               return (

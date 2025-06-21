@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -115,8 +114,16 @@ const AppointmentDetails = ({
     duration: as.services.duration
   })) || [];
   
-  // Calculate total price
-  const totalPrice = services.reduce((total, service) => total + service.price, 0);
+  // Calculate total price - prioritize appointment's final_price
+  const totalPrice = (() => {
+    // If appointment has a final_price and it's greater than 0, use it
+    if (appointment.final_price && appointment.final_price > 0) {
+      return appointment.final_price;
+    }
+    
+    // Otherwise, sum the individual service prices
+    return services.reduce((total, service) => total + service.price, 0);
+  })();
 
   const handleRecurringDelete = async () => {
     if (deleteOption === "single") {
